@@ -3,9 +3,9 @@
 //
 // Höchstmaße lassen sich per URL ändern: index.html?maxw=200&maxh=15
 
-import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js';
-import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js';
-import { exportPNG, exportSVG, exportPDF, download } from './export.js';
+import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js?v=20261008-2';
+import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js?v=20261008-2';
+import { exportPNG, exportSVG, exportPDF, download } from './export.js?v=20261008-2';
 
 const Q = new URLSearchParams(location.search);
 const num = (k, def) => { const v = parseFloat(Q.get(k)); return Number.isFinite(v) && v > 0 ? v : def; };
