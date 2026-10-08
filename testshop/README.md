@@ -8,15 +8,16 @@ den echten Shop anzufassen.
 **https://playground.wordpress.net/?blueprint-url=https://raw.githubusercontent.com/ehaener/folieneditor/main/testshop/blueprint.json**
 
 Der Start dauert beim ersten Mal 1–2 Minuten. Dann ist man als Admin angemeldet und landet
-auf der Seite „Folie gestalten“.
+auf dem Produkt „Treppenfolie individuell“ mit dem Editor.
 
 Was eingerichtet wird (`blueprint.json`):
 
 - WordPress auf Deutsch, aktuelles WooCommerce
 - Euro, Deutschland, Preise inkl. MwSt., Shop sofort sichtbar
-- Produkt „Treppenfolie individuell“ (Platzhalterpreis 29 €)
+- das Plugin **Folieneditor für WooCommerce** (aus `wordpress-plugin/dist/`)
+- Produkt „Treppenfolie individuell“ mit eingeschaltetem Editor
 - Zahlarten „Kauf auf Rechnung (Test)“ und „Vorkasse (Test)“, es wird nichts berechnet
-- Seite „Folie gestalten“ mit dem Editor von GitHub Pages
+- kein Versand (damit die Kasse ohne Versandzonen funktioniert)
 
 ## Gut zu wissen
 

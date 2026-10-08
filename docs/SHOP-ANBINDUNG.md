@@ -1,6 +1,7 @@
 # Shop-Anbindung: Folieneditor in schultreppe.de (WooCommerce)
 
-Stand: 08.10.2026. Planung, noch nicht umgesetzt.
+Stand: 08.10.2026. **Plugin gebaut und im Test-Shop geprüft**, Test auf der Staging-Seite steht aus.
+Installation und Details: [`wordpress-plugin/README.md`](../wordpress-plugin/README.md)
 
 Ziel: Kunden gestalten ihre Treppenfolie direkt im Shop und bestellen sie wie jedes
 andere Produkt. Die Druckerei-Datei hängt automatisch an der Bestellung.
@@ -80,12 +81,14 @@ Region `europe-west3` Frankfurt).
 
 ---
 
-## 5. Offene Fragen (vor dem Bau klären)
+## 5. Geklärte Fragen
 
-1. **Preismodell:** € pro m²? Feste Größen? Grundpreis + Fläche? Mindestpreis?
-2. **Plugin-Upload:** Erlaubt das Hosting eigene Plugins?
-3. **Rechtstexte-Plugin:** Germanized oder German Market im Einsatz?
-4. **Staging:** Gibt es beim Hoster eine Staging-Funktion? (siehe unten)
+| Frage | Antwort |
+|---|---|
+| Plugins installierbar? | Ja |
+| Rechtstexte-Plugin | **Germanized Pro** |
+| Staging | beim Hoster möglich |
+| Preismodell | noch offen. Im Plugin einstellbar als Grundpreis + Preis pro m² + Mindestpreis |
 
 ---
 
@@ -134,8 +137,9 @@ Testshop übernehmen, damit Stufe 1 dem echten Shop ähnlicher wird.
 ## 7. Reihenfolge
 
 1. ✅ Testshop im Browser (`testshop/`)
-2. Offene Fragen klären (Abschnitt 5)
-3. Plugin bauen: Editor im Produkt, Warenkorb, Preis, Druck-PDF an Bestellung
-4. Im Testshop testen, dann in der Staging-Kopie
-5. Live schalten
+2. ✅ Fragen geklärt (Abschnitt 5), außer dem Preismodell
+3. ✅ Plugin gebaut: Editor im Produkt, Warenkorb, Preis, Druck-PDF an Bestellung
+4. ✅ Im Test-Shop (WooCommerce 11.1) komplett durchgespielt
+5. ⬜ Preise festlegen und auf der **Staging-Seite** testen (Checkliste in `wordpress-plugin/README.md`)
+6. ⬜ Live schalten
 6. Danach: Treppen-Projekte, Vorlagen, Entwürfe teilen

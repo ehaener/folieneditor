@@ -147,8 +147,11 @@ Hochladen (`IMG_MAX_PX`) und die dpi-Grenze für die Unschärfe-Warnung (`IMG_MI
 
 | Datei | Aufgabe |
 |---|---|
-| `index.html`, `styles.css` | Oberfläche |
-| `src/main.js` | Bedienung, Bild-Upload, Speicherstand im Browser |
+| `index.html` | eigene Seite, startet den Editor |
+| `styles.css` | Gestaltung, unter `.fe` gekapselt |
+| `src/ui.js` | Markup des Editors |
+| `src/main.js` | Bedienung, Bild-Upload, Speicherstand im Browser (`mount()`) |
+| `src/shop.js` | Start im Shop: Preis und Warenkorb |
 | `src/layout.js` | Satz in Millimetern: Text, Bildplatzierung, Beschnitt, Hilfslinien |
 | `src/export.js` | PNG-, SVG- und PDF-Export (PDF ohne Fremdbibliothek) |
 | `src/fonts.js` | Schriftliste und Laden der Schriften |
@@ -161,4 +164,5 @@ Vorschau, PNG, SVG und PDF benutzen alle dasselbe Layout-Ergebnis aus `layout.js
 ### Weitere Dokumente
 
 - [Shop-Anbindung an WooCommerce (Planung)](SHOP-ANBINDUNG.md)
+- [WordPress-Plugin: Installation und Test](../wordpress-plugin/README.md)
 - [Testshop im Browser](../testshop/README.md)

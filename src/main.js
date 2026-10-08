@@ -1,49 +1,42 @@
 // Folieneditor: Maße in cm, Text, Bild/Logo, Schriftart, Hintergrund- und
 // Textfarbe, 2 mm Beschnitt, Export als PNG, PDF oder SVG.
 //
-// Höchstmaße lassen sich per URL ändern: index.html?maxw=200&maxh=15
+// mount(container, options) setzt den Editor in einen Container. Als eigene Seite
+// (index.html) mit Export-Knöpfen, im Shop (WordPress-Plugin, shop.js) mit Preis
+// und Warenkorb-Knopf.
+//
+// Höchstmaße lassen sich auf der eigenen Seite per URL ändern: index.html?maxw=200&maxh=15
 
-import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js?v=20261008-2';
-import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js?v=20261008-2';
-import { exportPNG, exportSVG, exportPDF, download } from './export.js?v=20261008-2';
+import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js?v=20261008-3';
+import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js?v=20261008-3';
+import { exportPNG, exportSVG, exportPDF, download } from './export.js?v=20261008-3';
+import { template } from './ui.js?v=20261008-3';
 
-const Q = new URLSearchParams(location.search);
-const num = (k, def) => { const v = parseFloat(Q.get(k)); return Number.isFinite(v) && v > 0 ? v : def; };
-const LIMITS = { minW: 5, minH: 2, maxW: num('maxw', 200), maxH: num('maxh', 15) };
 const PNG_DPI = 150;
-const LS_KEY = 'folie.v1';
-const IMG_KEY = 'folie.img.v1';       // Bild separat, damit nicht jeder Tastendruck es neu speichert
 const IMG_MAX_PX = 2400;              // längste Bildseite nach dem Hochladen (reicht für 15 cm bei 300 dpi)
 const IMG_MIN_DPI = 100;              // darunter Hinweis auf unscharfen Druck
 
-const COLORS = [
+export const COLORS = [
   ['Weiß', '#ffffff'], ['Schwarz', '#1d1d1b'], ['Grau', '#8d8d8d'], ['Rot', '#d62828'],
   ['Orange', '#f28c28'], ['Gelb', '#ffd23f'], ['Hellgrün', '#8cc63f'], ['Grün', '#2e8b57'],
   ['Türkis', '#1fb5ad'], ['Hellblau', '#4fb3e8'], ['Blau', '#1f5fad'], ['Lila', '#7b4fa0'],
   ['Pink', '#e5579b'], ['Braun', '#8b5a2b'],
 ];
 
-const $ = (id) => document.getElementById(id);
-const els = {
-  w: $('w'), h: $('h'), sizeErr: $('sizeErr'), sizeHint: $('sizeHint'),
-  text: $('text'), font: $('font'), bg: $('bgSw'), fg: $('fgSw'),
-  guides: $('guides'), canvas: $('preview'), wrap: $('wrap'), dims: $('dims'),
-  exportMsg: $('exportMsg'),
-  imgFile: $('imgFile'), imgPickLabel: $('imgPickLabel'), imgRemove: $('imgRemove'), imgOpts: $('imgOpts'),
-  imgPos: $('imgPos'), imgScale: $('imgScale'), imgScaleOut: $('imgScaleOut'), imgScaleField: $('imgScaleField'),
-  imgHint: $('imgHint'), imgErr: $('imgErr'),
-};
-const IMG_HINT = els.imgHint.textContent;
+function urlLimits() {
+  const Q = new URLSearchParams(location.search);
+  const num = (k, def) => { const v = parseFloat(Q.get(k)); return Number.isFinite(v) && v > 0 ? v : def; };
+  return { maxW: num('maxw', 200), maxH: num('maxh', 15) };
+}
 
+// Ein Editor pro Seite: Zustand auf Modulebene, gesetzt von mount()
+let LIMITS, LS_KEY, IMG_KEY, els, IMG_HINT, onChange;
 const state = {
-  wcm: Math.min(100, LIMITS.maxW), hcm: Math.min(10, LIMITS.maxH),
+  wcm: 100, hcm: 10,
   text: 'Dein Text', font: DEFAULT_FONT, bg: '#ffffff', fg: '#1d1d1b',
   imgPos: 'left', imgScale: 100,
 };
 let img = null;   // HTMLImageElement des hochgeladenen Bildes
-try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch {}
-state.wcm = Math.min(Math.max(state.wcm, LIMITS.minW), LIMITS.maxW);
-state.hcm = Math.min(Math.max(state.hcm, LIMITS.minH), LIMITS.maxH);
 
 const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} };
 const fmt = (v) => v.toLocaleString('de-DE', { maximumFractionDigits: 1 });
@@ -73,13 +66,13 @@ function buildSwatches(container, key, label) {
   container.innerHTML = '';
   for (const [name, hex] of COLORS) {
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'swatch'; b.style.setProperty('--c', hex);
+    b.type = 'button'; b.className = 'fe-swatch'; b.style.setProperty('--c', hex);
     b.title = name; b.setAttribute('aria-label', `${label}: ${name}`); b.dataset.hex = hex;
     b.onclick = () => { state[key] = hex; syncSwatches(); draw(); save(); };
     container.appendChild(b);
   }
   const custom = document.createElement('label');
-  custom.className = 'swatch custom'; custom.title = 'Eigene Farbe';
+  custom.className = 'fe-swatch fe-custom'; custom.title = 'Eigene Farbe';
   custom.innerHTML = `<input type="color" aria-label="${label}: eigene Farbe">`;
   const input = custom.querySelector('input');
   input.oninput = () => { state[key] = input.value; syncSwatches(); draw(); };
@@ -89,12 +82,12 @@ function buildSwatches(container, key, label) {
 function syncSwatches() {
   for (const [container, key] of [[els.bg, 'bg'], [els.fg, 'fg']]) {
     let matched = false;
-    container.querySelectorAll('button.swatch').forEach((b) => {
+    container.querySelectorAll('button.fe-swatch').forEach((b) => {
       const on = b.dataset.hex.toLowerCase() === state[key].toLowerCase();
       matched ||= on;
       b.setAttribute('aria-pressed', String(on));
     });
-    const custom = container.querySelector('.custom');
+    const custom = container.querySelector('.fe-custom');
     custom.classList.toggle('active', !matched);
     custom.querySelector('input').value = state[key];
     if (!matched) custom.style.setProperty('--c', state[key]); else custom.style.removeProperty('--c');
@@ -177,14 +170,14 @@ function syncImage(note = '') {
 // Hinweis zur Bildschärfe, abhängig von Größe und Position
 function imageHint(lay) {
   const note = els.imgHint.dataset.note || '';
-  if (!lay.image) { els.imgHint.textContent = note || IMG_HINT; els.imgHint.className = 'hint'; return; }
+  if (!lay.image) { els.imgHint.textContent = note || IMG_HINT; els.imgHint.className = 'fe-hint'; return; }
   const dpi = imageDpi(lay.image);
   const warn = dpi < IMG_MIN_DPI;
   els.imgHint.textContent = [
     warn ? `Das Bild hat für diese Größe nur etwa ${dpi} dpi und kann im Druck unscharf wirken.` : `Bildauflösung im Druck: etwa ${dpi} dpi.`,
     note,
   ].filter(Boolean).join(' ');
-  els.imgHint.className = warn || note ? 'hint warn' : 'hint';
+  els.imgHint.className = warn || note ? 'fe-hint fe-warn' : 'fe-hint';
 }
 
 // ---- Vorschau -----------------------------------------------------------
@@ -202,12 +195,13 @@ function draw() {
   drawCanvas(c.getContext('2d'), state, lay, scale * dpr, { guides: els.guides.checked });
   imageHint(lay);
   els.dims.textContent = `Endformat ${fmt(state.wcm)} × ${fmt(state.hcm)} cm · mit Beschnitt ${fmt(P.w / 10)} × ${fmt(P.h / 10)} cm`;
+  onChange?.();
 }
 
 // ---- Export -------------------------------------------------------------
 async function runExport(kind) {
   const err = sizeError(readNum(els.w), readNum(els.h));
-  if (err) { els.exportMsg.textContent = err; els.exportMsg.className = 'hint error'; return; }
+  if (err) { els.exportMsg.textContent = err; els.exportMsg.className = 'fe-hint fe-error'; return; }
   const lay = currentLayout();
   const base = `folie_${String(state.wcm).replace('.', ',')}x${String(state.hcm).replace('.', ',')}cm`;
   try {
@@ -222,23 +216,50 @@ async function runExport(kind) {
       download(await exportPDF(state, lay), `${base}.pdf`);
       els.exportMsg.textContent = 'PDF erstellt.';
     }
-    els.exportMsg.className = 'hint ok';
+    els.exportMsg.className = 'fe-hint fe-ok';
   } catch (e) {
     console.error(e);
     els.exportMsg.textContent = e.message || 'Export fehlgeschlagen.';
-    els.exportMsg.className = 'hint error';
+    els.exportMsg.className = 'fe-hint fe-error';
   }
 }
 
 // ---- Start --------------------------------------------------------------
-async function boot() {
+// options: shop (Preis/Warenkorb statt Export), limits {minW,minH,maxW,maxH},
+// storageKey (Speicherstand im Browser), onChange (nach jeder Änderung).
+export async function mount(root, options = {}) {
+  const shop = !!options.shop;
+  LIMITS = { minW: 5, minH: 2, ...(options.limits || urlLimits()) };
+  LS_KEY = options.storageKey || 'folie.v1';
+  IMG_KEY = options.storageKey ? `${LS_KEY}.img` : 'folie.img.v1';
+  onChange = options.onChange;
+
+  root.classList.add('fe');
+  root.innerHTML = template({ shop });
+  const $ = (id) => root.querySelector(`#fe-${id}`);
+  els = {
+    w: $('w'), h: $('h'), sizeErr: $('sizeErr'), sizeHint: $('sizeHint'),
+    text: $('text'), font: $('font'), bg: $('bgSw'), fg: $('fgSw'),
+    guides: $('guides'), canvas: $('preview'), wrap: $('wrap'), dims: $('dims'),
+    exportMsg: $('exportMsg'),
+    imgFile: $('imgFile'), imgPickLabel: $('imgPickLabel'), imgRemove: $('imgRemove'), imgOpts: $('imgOpts'),
+    imgPos: $('imgPos'), imgScale: $('imgScale'), imgScaleOut: $('imgScaleOut'), imgScaleField: $('imgScaleField'),
+    imgHint: $('imgHint'), imgErr: $('imgErr'),
+  };
+  IMG_HINT = els.imgHint.textContent;
+
+  state.wcm = Math.min(100, LIMITS.maxW); state.hcm = Math.min(10, LIMITS.maxH);
+  try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch {}
+  state.wcm = Math.min(Math.max(state.wcm, LIMITS.minW), LIMITS.maxW);
+  state.hcm = Math.min(Math.max(state.hcm, LIMITS.minH), LIMITS.maxH);
+
   const [available] = await Promise.all([
     loadFonts(),
     (async () => {
       try { const src = localStorage.getItem(IMG_KEY); if (src) img = await loadImage(src); } catch {}
     })(),
   ]);
-  if (!available.length) { els.dims.textContent = 'Keine Schrift gefunden – bitte den Ordner fonts/ prüfen.'; return; }
+  if (!available.length) { els.dims.textContent = 'Keine Schrift gefunden – bitte den Ordner fonts/ prüfen.'; return null; }
   if (!available.some((f) => f.id === state.font)) {
     state.font = available.some((f) => f.id === DEFAULT_FONT) ? DEFAULT_FONT : FALLBACK_FONT;
   }
@@ -248,7 +269,9 @@ async function boot() {
 
   Object.assign(els.w, { min: LIMITS.minW, max: LIMITS.maxW, value: state.wcm });
   Object.assign(els.h, { min: LIMITS.minH, max: LIMITS.maxH, value: state.hcm });
-  els.sizeHint.textContent = `Breite bis ${fmt(LIMITS.maxW)} cm, Höhe bis ${fmt(LIMITS.maxH)} cm. Alle Exporte enthalten rundum ${BLEED_MM} mm Beschnitt.`;
+  els.sizeHint.textContent = shop
+    ? `Breite ${fmt(LIMITS.minW)}–${fmt(LIMITS.maxW)} cm, Höhe ${fmt(LIMITS.minH)}–${fmt(LIMITS.maxH)} cm. Gedruckt wird mit rundum ${BLEED_MM} mm Beschnitt.`
+    : `Breite bis ${fmt(LIMITS.maxW)} cm, Höhe bis ${fmt(LIMITS.maxH)} cm. Alle Exporte enthalten rundum ${BLEED_MM} mm Beschnitt.`;
   els.text.value = state.text;
 
   buildSwatches(els.bg, 'bg', 'Hintergrundfarbe');
@@ -268,9 +291,15 @@ async function boot() {
   els.imgRemove.addEventListener('click', removeImage);
   els.imgPos.addEventListener('change', () => { state.imgPos = els.imgPos.value; syncImage(els.imgHint.dataset.note); draw(); save(); });
   els.imgScale.addEventListener('input', () => { state.imgScale = +els.imgScale.value; syncImage(els.imgHint.dataset.note); draw(); save(); });
-  document.querySelectorAll('[data-export]').forEach((b) => { b.onclick = () => runExport(b.dataset.export); });
+  root.querySelectorAll('[data-export]').forEach((b) => { b.onclick = () => runExport(b.dataset.export); });
   new ResizeObserver(draw).observe(els.wrap);
   draw();
-}
 
-boot();
+  return {
+    root, state, fontLabel, limits: LIMITS,
+    hasImage: () => !!img,
+    layout: currentLayout,
+    // Fehlermeldung, falls die eingegebenen Maße (noch) ungültig sind
+    sizeError: () => sizeError(readNum(els.w), readNum(els.h)),
+  };
+}

@@ -1,6 +1,9 @@
+/* Folieneditor. Alles ist unter .fe gekapselt, damit der Editor auch in fremden
+   Seiten (WordPress-Theme) läuft, ohne dort Stile zu verändern oder übernommen
+   zu bekommen. */
 @font-face { font-family: 'UI Fredoka'; src: url(fonts/fredoka.woff) format('woff'); font-display: swap; }
 
-:root {
+.fe {
   --paper: #f7f5ef;
   --ink: #1f2a2e;
   --muted: #66706f;
@@ -12,91 +15,96 @@
   --grid-bold: rgba(47, 93, 80, .14);
   --panel: #ffffff;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: var(--ink);
+  font-size: 16px; line-height: 1.4; color: var(--ink); text-align: left;
 }
-* { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
-body { background: var(--paper); }
+.fe *, .fe *::before, .fe *::after { box-sizing: border-box; }
 
-.app {
+.fe-app {
   display: grid; height: 100%;
   grid-template-columns: 320px 1fr;
   grid-template-areas: "panel stage";
 }
 
 /* ---- Bedienfeld ---- */
-.panel {
+.fe .fe-panel {
   grid-area: panel; overflow-y: auto; background: var(--panel);
   border-right: 1px solid var(--line); padding: 18px 20px 28px;
 }
-section { padding: 14px 0; border-bottom: 1px dashed var(--line); }
-section:first-child { padding-top: 0; }
-h2 {
-  margin: 0 0 10px; font: 500 15px/1.2 'UI Fredoka', system-ui, sans-serif;
-  letter-spacing: .02em; color: var(--accent);
+.fe section { margin: 0; padding: 14px 0; border: 0; border-bottom: 1px dashed var(--line); background: none; }
+.fe section:first-child { padding-top: 0; }
+.fe h2 {
+  margin: 0 0 10px; padding: 0; font: 500 15px/1.2 'UI Fredoka', system-ui, sans-serif;
+  letter-spacing: .02em; text-transform: none; color: var(--accent);
 }
-h2 label { cursor: pointer; }
+.fe h2 label { cursor: pointer; font: inherit; color: inherit; margin: 0; }
+.fe label { margin: 0; }
 
-.size { display: flex; align-items: flex-end; gap: 8px; }
-.field { flex: 1; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
-.unit { position: relative; display: block; }
-.unit input { width: 100%; padding-right: 34px; }
-.unit em { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); font-size: 14px; pointer-events: none; }
-.times { padding-bottom: 9px; color: var(--muted); }
+.fe-size { display: flex; align-items: flex-end; gap: 8px; }
+.fe-field { flex: 1; display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.fe-unit { position: relative; display: block; }
+.fe .fe-unit input { width: 100%; padding-right: 34px; }
+.fe-unit em { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-style: normal; color: var(--muted); font-size: 14px; pointer-events: none; }
+.fe-times { padding-bottom: 9px; color: var(--muted); }
 
-input[type="number"], textarea, select {
-  font: inherit; font-size: 16px; color: var(--ink); width: 100%;
-  border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px;
+.fe input[type="number"], .fe textarea, .fe select {
+  font: inherit; font-size: 16px; color: var(--ink); width: 100%; max-width: none; height: auto; margin: 0;
+  border: 1px solid var(--line); border-radius: 8px; background: #fff; padding: 8px 10px; box-shadow: none;
 }
-input[aria-invalid="true"] { border-color: var(--error); }
-input:focus-visible, textarea:focus-visible, select:focus-visible, button:focus-visible, .swatch:focus-within {
+.fe input[aria-invalid="true"] { border-color: var(--error); }
+.fe input:focus-visible, .fe textarea:focus-visible, .fe select:focus-visible, .fe button:focus-visible, .fe-swatch:focus-within {
   outline: 2px solid var(--accent); outline-offset: 2px;
 }
-textarea { resize: vertical; min-height: 72px; line-height: 1.35; }
+.fe textarea { resize: vertical; min-height: 72px; line-height: 1.35; }
 
-.hint { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
-.error { margin: 6px 0 0; font-size: 13px; color: var(--error); }
-.error:empty { display: none; }
+.fe-hint { margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.fe-error { margin: 6px 0 0; font-size: 13px; color: var(--error); }
+.fe-error:empty { display: none; }
+.fe-hint.fe-ok { color: #2e7d32; }
+.fe-hint.fe-error { color: var(--error); }
+.fe-hint.fe-warn { color: #9a5b00; }
 
-.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 8px; }
-.swatch {
-  position: relative; aspect-ratio: 1; min-width: 32px; padding: 0; cursor: pointer;
-  border-radius: 50%; border: 1px solid rgba(0, 0, 0, .18); background: var(--c);
+.fe-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(32px, 1fr)); gap: 8px; }
+.fe .fe-swatch {
+  position: relative; aspect-ratio: 1; min-width: 32px; width: auto; height: auto; padding: 0; margin: 0; cursor: pointer;
+  border-radius: 50%; border: 1px solid rgba(0, 0, 0, .18); background: var(--c); box-shadow: none;
 }
-.swatch[aria-pressed="true"], .swatch.custom.active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
-.swatch.custom { background: var(--c, conic-gradient(#e53935, #fdd835, #43a047, #1e88e5, #8e24aa, #e53935)); display: block; }
-.swatch.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+.fe .fe-swatch[aria-pressed="true"], .fe .fe-swatch.fe-custom.active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--accent); }
+.fe .fe-swatch.fe-custom { background: var(--c, conic-gradient(#e53935, #fdd835, #43a047, #1e88e5, #8e24aa, #e53935)); display: block; }
+.fe-swatch.fe-custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
-.img-pick { display: flex; align-items: center; gap: 12px; }
-.file-btn {
+.fe-img-pick { display: flex; align-items: center; gap: 12px; }
+.fe-file-btn {
   position: relative; display: inline-block; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
   color: var(--accent); font: 500 15px 'UI Fredoka', system-ui, sans-serif; cursor: pointer; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.link-btn { border: 0; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); text-decoration: underline; cursor: pointer; }
-.img-opts { display: grid; gap: 10px; margin-top: 12px; }
-.img-opts[hidden], .img-pick [hidden], #imgScaleField[hidden] { display: none; }
-input[type="range"] { width: 100%; accent-color: var(--accent); }
-.hint.warn { color: #9a5b00; }
+.fe-file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.fe-file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fe .fe-link-btn { border: 0; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); text-decoration: underline; cursor: pointer; box-shadow: none; }
+.fe-img-opts { display: grid; gap: 10px; margin-top: 12px; }
+.fe [hidden] { display: none !important; }
+.fe input[type="range"] { width: 100%; accent-color: var(--accent); }
 
-section.export {
+.fe section.fe-export {
   position: sticky; bottom: -28px; margin: 0 -20px -28px; padding: 14px 20px 18px;
   background: var(--panel); border-bottom: 0; border-top: 1px solid var(--line);
   box-shadow: 0 -6px 12px rgba(255, 255, 255, .9);
 }
-.export-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.hint.ok { color: #2e7d32; }
-.hint.error { color: var(--error); }
-button.primary {
-  width: 100%; padding: 11px 14px; border: 0; border-radius: 8px; cursor: pointer;
-  background: var(--accent); color: var(--accent-ink); font: 500 15px 'UI Fredoka', system-ui, sans-serif;
+.fe-export-btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fe .fe-primary {
+  width: 100%; padding: 11px 14px; margin: 0; border: 0; border-radius: 8px; cursor: pointer; line-height: 1.2;
+  background: var(--accent); color: var(--accent-ink); font: 500 15px 'UI Fredoka', system-ui, sans-serif; text-transform: none;
 }
-button.primary[disabled] { opacity: .6; cursor: wait; }
+.fe .fe-primary[disabled] { opacity: .6; cursor: wait; }
+
+/* Shop: Preis und Warenkorb */
+.fe-price { margin: 0 0 10px; font-size: 14px; color: var(--muted); }
+.fe-price strong { font: 500 24px/1.1 'UI Fredoka', system-ui, sans-serif; color: var(--ink); margin-right: 4px; }
+.fe-buy-row { display: grid; grid-template-columns: 76px 1fr; gap: 8px; align-items: end; }
+.fe-qty { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 
 /* ---- Vorschau auf Millimeterpapier ---- */
-.stage {
+.fe .fe-stage {
   grid-area: stage; display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 16px 20px;
   background-color: var(--paper);
   background-image:
@@ -106,38 +114,33 @@ button.primary[disabled] { opacity: .6; cursor: wait; }
     linear-gradient(90deg, var(--grid-fine) 1px, transparent 1px);
   background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
 }
-.canvas-wrap { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; }
-canvas { display: block; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 8px 24px rgba(31,42,46,.12); }
+.fe-canvas-wrap { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+.fe canvas { display: block; max-width: none; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 8px 24px rgba(31,42,46,.12); }
 
-.stage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; font-size: 13px; }
-.dims { margin: 0; font-variant-numeric: tabular-nums; color: var(--ink); }
-.check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; }
-.legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
-.legend li { display: inline-flex; align-items: center; gap: 6px; }
-.legend i { display: inline-block; width: 18px; height: 10px; }
-.lg-bleed { background: repeating-linear-gradient(45deg, #cfcac0 0 2px, #ece8df 2px 4px); }
-.lg-trim { border: 1.5px solid #d6246e; }
-.lg-safe { border: 1px dashed #1d8fbf; }
+.fe-stage-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 16px; font-size: 13px; }
+.fe .fe-dims { margin: 0; font-variant-numeric: tabular-nums; color: var(--ink); }
+.fe-check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; }
+.fe .fe-legend { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
+.fe-legend li { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.fe-legend i { display: inline-block; width: 18px; height: 10px; }
+.fe-lg-bleed { background: repeating-linear-gradient(45deg, #cfcac0 0 2px, #ece8df 2px 4px); }
+.fe-lg-trim { border: 1.5px solid #d6246e; }
+.fe-lg-safe { border: 1px dashed #1d8fbf; }
+
+/* Eigene Seite: Editor füllt das ganze Fenster */
+html:has(> body > .fe-standalone), body:has(> .fe-standalone) { height: 100%; margin: 0; background: #f7f5ef; }
+.fe-standalone { height: 100%; }
+
+/* Im Shop: feste Höhe innerhalb der Produktseite */
+.fe-shop { height: 680px; max-height: 92vh; margin: 24px 0; border: 1px solid #ddd8cc; border-radius: 12px; overflow: hidden; clear: both; }
 
 /* ---- Handy: Vorschau oben, Bedienfeld darunter ---- */
 @media (max-width: 760px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: "stage" "panel"; }
-  .stage { padding: 12px; }
-  .canvas-wrap { min-height: 110px; flex: none; height: 26vh; }
-  .panel { border-right: 0; border-top: 1px solid var(--line); }
-  .img-pick { display: flex; align-items: center; gap: 12px; }
-.file-btn {
-  position: relative; display: inline-block; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
-  color: var(--accent); font: 500 15px 'UI Fredoka', system-ui, sans-serif; cursor: pointer; max-width: 100%;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.link-btn { border: 0; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); text-decoration: underline; cursor: pointer; }
-.img-opts { display: grid; gap: 10px; margin-top: 12px; }
-.img-opts[hidden], .img-pick [hidden], #imgScaleField[hidden] { display: none; }
-input[type="range"] { width: 100%; accent-color: var(--accent); }
-.hint.warn { color: #9a5b00; }
-
-section.export { position: static; margin: 0; padding: 14px 0 0; border-top: 0; box-shadow: none; }
+  .fe-app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; grid-template-areas: "stage" "panel"; }
+  .fe .fe-stage { padding: 12px; }
+  .fe-canvas-wrap { min-height: 110px; flex: none; height: 26vh; }
+  .fe .fe-panel { border-right: 0; border-top: 1px solid var(--line); }
+  .fe section.fe-export { position: static; margin: 0; padding: 14px 0 0; border-top: 0; box-shadow: none; }
+  .fe-shop { height: auto; max-height: none; }
+  .fe-shop .fe-panel { overflow: visible; }
 }
