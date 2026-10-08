@@ -1,0 +1,37 @@
+{
+  "$schema": "https://playground.wordpress.net/blueprint-schema.json",
+  "meta": {
+    "title": "Schultreppe Testshop",
+    "description": "WordPress + WooCommerce zum Testen des Folieneditors",
+    "author": "ehaener"
+  },
+  "landingPage": "/folie-gestalten/",
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "latest"
+  },
+  "features": {
+    "networking": true
+  },
+  "login": true,
+  "steps": [
+    {
+      "step": "setSiteLanguage",
+      "language": "de_DE"
+    },
+    {
+      "step": "installPlugin",
+      "pluginData": {
+        "resource": "wordpress.org/plugins",
+        "slug": "woocommerce"
+      },
+      "options": {
+        "activate": true
+      }
+    },
+    {
+      "step": "runPHP",
+      "code": "<?php\n// Richtet den leeren Testshop ein: deutsche Grundeinstellungen, Testprodukt,\n// Zahlarten und eine Seite mit dem Folieneditor. Läuft einmal beim Start.\nrequire_once '/wordpress/wp-load.php';\n\nforeach ([\n\t'blogname'                      => 'Schultreppe Testshop',\n\t'blogdescription'               => 'Nur zum Testen – keine echten Bestellungen',\n\t'woocommerce_currency'          => 'EUR',\n\t'woocommerce_default_country'   => 'DE:BY',\n\t'woocommerce_price_thousand_sep' => '.',\n\t'woocommerce_price_decimal_sep' => ',',\n\t'woocommerce_currency_pos'      => 'right_space',\n\t'woocommerce_prices_include_tax' => 'yes',\n\t'woocommerce_coming_soon'       => 'no',      // Shop sofort sichtbar\n\t'woocommerce_task_list_hidden'  => 'yes',\n\t'woocommerce_onboarding_profile' => [ 'skipped' => true ],\n] as $k => $v ) {\n\tupdate_option( $k, $v );\n}\n\n// Zahlarten: Rechnung (über das Scheck-Gateway) und Überweisung\nupdate_option( 'woocommerce_cheque_settings', [\n\t'enabled' => 'yes', 'title' => 'Kauf auf Rechnung (Test)',\n\t'description' => 'Testbestellung, es wird nichts berechnet.', 'instructions' => '',\n] );\nupdate_option( 'woocommerce_bacs_settings', [\n\t'enabled' => 'yes', 'title' => 'Vorkasse per Überweisung (Test)',\n\t'description' => 'Testbestellung, es wird nichts berechnet.', 'instructions' => '',\n] );\n\n// Testprodukt\nif ( ! get_page_by_path( 'treppenfolie-individuell', OBJECT, 'product' ) ) {\n\t$p = new WC_Product_Simple();\n\t$p->set_name( 'Treppenfolie individuell' );\n\t$p->set_slug( 'treppenfolie-individuell' );\n\t$p->set_regular_price( '29.00' );\n\t$p->set_short_description( 'Treppenfolie mit eigenem Text und Logo. Der Preis ist ein Platzhalter, bis der Editor angebunden ist.' );\n\t$p->set_status( 'publish' );\n\t$p->save();\n}\n\n// Seite mit dem Editor (vorerst eingebettet, bis das Plugin fertig ist)\nif ( ! get_page_by_path( 'folie-gestalten' ) ) {\n\twp_insert_post( [\n\t\t'post_type'    => 'page',\n\t\t'post_status'  => 'publish',\n\t\t'post_title'   => 'Folie gestalten',\n\t\t'post_name'    => 'folie-gestalten',\n\t\t'post_content' => '<!-- wp:html --><iframe src=\"https://ehaener.github.io/folieneditor/\" title=\"Folieneditor\" style=\"width:100%;height:85vh;border:0\"></iframe><!-- /wp:html -->',\n\t] );\n}\n"
+    }
+  ]
+}
