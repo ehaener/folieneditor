@@ -11,6 +11,8 @@ Schlanker Editor für individuell beschriftete Folien, z. B. Treppenfolien.
 
 Ausführliche Beschreibung aller Funktionen: [docs/DOKUMENTATION.md](docs/DOKUMENTATION.md)
 
+Testshop mit WordPress und WooCommerce im Browser: [testshop/README.md](testshop/README.md)
+
 ## Starten
 
 Lokal:
