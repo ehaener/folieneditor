@@ -13,6 +13,8 @@ Ausführliche Beschreibung aller Funktionen: [docs/DOKUMENTATION.md](docs/DOKUME
 
 Testshop mit WordPress und WooCommerce im Browser: [testshop/README.md](testshop/README.md)
 
+Planung der Shop-Anbindung (WooCommerce): [docs/SHOP-ANBINDUNG.md](docs/SHOP-ANBINDUNG.md)
+
 ## Starten
 
 Lokal:
