@@ -1,147 +1,167 @@
-// Bootstrap: Fonts + Assets laden, Store/Renderer/UI verdrahten, Shortcuts.
-import { Store } from './core/store.js';
-import { Renderer } from './render/renderer.js';
-import { InlineEditor } from './ui/inline-edit.js';
-import { UI } from './ui/ui.js';
-import { preloadAll, preloadDeckAssets, getAsset } from './model/assets.js';
-import { loadExternalAssets } from './model/external-assets.js';
-import { BRAND_DISPLAY } from './model/brand.js';
+// Folieneditor: Maße in cm, Text, Schriftart, Hintergrund- und Textfarbe,
+// 2 mm Beschnitt, Export als PNG, PDF oder SVG.
+//
+// Höchstmaße lassen sich per URL ändern: index.html?maxw=200&maxh=15
 
-// Belegt jede Slide mit einem Gradient (z0) + einer DNA (z10) aus dem Ordner,
-// sofern noch nicht (gültig) gesetzt. Rundlauf über die vorhandenen Dateien.
-function applyFolderBackgrounds(store, folder) {
-  const { backgrounds, overlays } = folder;
-  store.deck.slides.forEach((s, i) => {
-    const bgOk = s.background?.assetId && getAsset(s.background.assetId);
-    if (!bgOk && backgrounds.length) {
-      s.background = { ...s.background, assetId: backgrounds[i % backgrounds.length] };
+import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js';
+import { layout, drawCanvas, printSize, BLEED_MM } from './layout.js';
+import { exportPNG, exportSVG, exportPDF, download } from './export.js';
+
+const Q = new URLSearchParams(location.search);
+const num = (k, def) => { const v = parseFloat(Q.get(k)); return Number.isFinite(v) && v > 0 ? v : def; };
+const LIMITS = { minW: 5, minH: 2, maxW: num('maxw', 200), maxH: num('maxh', 15) };
+const PNG_DPI = 150;
+const LS_KEY = 'folie.v1';
+
+const COLORS = [
+  ['Weiß', '#ffffff'], ['Schwarz', '#1d1d1b'], ['Grau', '#8d8d8d'], ['Rot', '#d62828'],
+  ['Orange', '#f28c28'], ['Gelb', '#ffd23f'], ['Hellgrün', '#8cc63f'], ['Grün', '#2e8b57'],
+  ['Türkis', '#1fb5ad'], ['Hellblau', '#4fb3e8'], ['Blau', '#1f5fad'], ['Lila', '#7b4fa0'],
+  ['Pink', '#e5579b'], ['Braun', '#8b5a2b'],
+];
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  w: $('w'), h: $('h'), sizeErr: $('sizeErr'), sizeHint: $('sizeHint'),
+  text: $('text'), font: $('font'), bg: $('bgSw'), fg: $('fgSw'),
+  guides: $('guides'), canvas: $('preview'), wrap: $('wrap'), dims: $('dims'),
+  exportMsg: $('exportMsg'),
+};
+
+const state = {
+  wcm: Math.min(100, LIMITS.maxW), hcm: Math.min(10, LIMITS.maxH),
+  text: 'Dein Text', font: DEFAULT_FONT, bg: '#ffffff', fg: '#1d1d1b',
+};
+try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch {}
+state.wcm = Math.min(Math.max(state.wcm, LIMITS.minW), LIMITS.maxW);
+state.hcm = Math.min(Math.max(state.hcm, LIMITS.minH), LIMITS.maxH);
+
+const save = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {} };
+const fmt = (v) => v.toLocaleString('de-DE', { maximumFractionDigits: 1 });
+const currentLayout = () => layout(state, getFont(state.font));
+
+// ---- Maße ---------------------------------------------------------------
+function readNum(input) { return Math.round(parseFloat(String(input.value).replace(',', '.')) * 10) / 10; }
+function sizeError(w, h) {
+  if (!Number.isFinite(w) || !Number.isFinite(h)) return 'Bitte Breite und Höhe angeben.';
+  if (w < LIMITS.minW || w > LIMITS.maxW) return `Die Breite muss zwischen ${fmt(LIMITS.minW)} und ${fmt(LIMITS.maxW)} cm liegen.`;
+  if (h < LIMITS.minH || h > LIMITS.maxH) return `Die Höhe muss zwischen ${fmt(LIMITS.minH)} und ${fmt(LIMITS.maxH)} cm liegen.`;
+  return '';
+}
+function onSize() {
+  const w = readNum(els.w), h = readNum(els.h);
+  const err = sizeError(w, h);
+  els.sizeErr.textContent = err;
+  els.w.setAttribute('aria-invalid', String(!(w >= LIMITS.minW && w <= LIMITS.maxW)));
+  els.h.setAttribute('aria-invalid', String(!(h >= LIMITS.minH && h <= LIMITS.maxH)));
+  if (err) return;
+  state.wcm = w; state.hcm = h;
+  draw(); save();
+}
+
+// ---- Farbfelder ---------------------------------------------------------
+function buildSwatches(container, key, label) {
+  container.innerHTML = '';
+  for (const [name, hex] of COLORS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'swatch'; b.style.setProperty('--c', hex);
+    b.title = name; b.setAttribute('aria-label', `${label}: ${name}`); b.dataset.hex = hex;
+    b.onclick = () => { state[key] = hex; syncSwatches(); draw(); save(); };
+    container.appendChild(b);
+  }
+  const custom = document.createElement('label');
+  custom.className = 'swatch custom'; custom.title = 'Eigene Farbe';
+  custom.innerHTML = `<input type="color" aria-label="${label}: eigene Farbe">`;
+  const input = custom.querySelector('input');
+  input.oninput = () => { state[key] = input.value; syncSwatches(); draw(); };
+  input.onchange = save;
+  container.appendChild(custom);
+}
+function syncSwatches() {
+  for (const [container, key] of [[els.bg, 'bg'], [els.fg, 'fg']]) {
+    let matched = false;
+    container.querySelectorAll('button.swatch').forEach((b) => {
+      const on = b.dataset.hex.toLowerCase() === state[key].toLowerCase();
+      matched ||= on;
+      b.setAttribute('aria-pressed', String(on));
+    });
+    const custom = container.querySelector('.custom');
+    custom.classList.toggle('active', !matched);
+    custom.querySelector('input').value = state[key];
+    if (!matched) custom.style.setProperty('--c', state[key]); else custom.style.removeProperty('--c');
+  }
+}
+
+// ---- Vorschau -----------------------------------------------------------
+function draw() {
+  const lay = currentLayout();
+  const P = lay.P;
+  const box = els.wrap.getBoundingClientRect();
+  const scale = Math.max(0.05, Math.min((box.width - 24) / P.w, (box.height - 24) / P.h));
+  const dpr = window.devicePixelRatio || 1;
+  const c = els.canvas;
+  c.style.width = `${Math.round(P.w * scale)}px`;
+  c.style.height = `${Math.round(P.h * scale)}px`;
+  c.width = Math.round(P.w * scale * dpr);
+  c.height = Math.round(P.h * scale * dpr);
+  drawCanvas(c.getContext('2d'), state, lay, scale * dpr, { guides: els.guides.checked });
+  els.dims.textContent = `Endformat ${fmt(state.wcm)} × ${fmt(state.hcm)} cm · mit Beschnitt ${fmt(P.w / 10)} × ${fmt(P.h / 10)} cm`;
+}
+
+// ---- Export -------------------------------------------------------------
+async function runExport(kind) {
+  const err = sizeError(readNum(els.w), readNum(els.h));
+  if (err) { els.exportMsg.textContent = err; els.exportMsg.className = 'hint error'; return; }
+  const lay = currentLayout();
+  const base = `folie_${String(state.wcm).replace('.', ',')}x${String(state.hcm).replace('.', ',')}cm`;
+  try {
+    if (kind === 'png') {
+      const { blob, dpi } = await exportPNG(state, lay, PNG_DPI);
+      download(blob, `${base}_${dpi}dpi.png`);
+      els.exportMsg.textContent = dpi < PNG_DPI ? `PNG mit ${dpi} dpi erstellt (Browser-Grenze).` : `PNG mit ${dpi} dpi erstellt.`;
+    } else if (kind === 'svg') {
+      download(exportSVG(state, lay, { font: fontLabel(state.font) }), `${base}.svg`);
+      els.exportMsg.textContent = 'SVG erstellt.';
+    } else {
+      download(exportPDF(state, lay), `${base}.pdf`);
+      els.exportMsg.textContent = 'PDF erstellt.';
     }
-    const ovOk = s.overlay?.assetId && getAsset(s.overlay.assetId);
-    if (!ovOk && overlays.length) {
-      const a = getAsset(overlays[i % overlays.length]);
-      s.overlay = { assetId: overlays[i % overlays.length], opacity: a?.defaultOpacity ?? 0.45, blend: a?.blend || 'source-over' };
-    }
-  });
+    els.exportMsg.className = 'hint ok';
+  } catch (e) {
+    console.error(e);
+    els.exportMsg.textContent = e.message || 'Export fehlgeschlagen.';
+    els.exportMsg.className = 'hint error';
+  }
 }
 
-// Prüft, ob eine (lokal installierte) Schrift verfügbar ist — Vergleich der
-// Textbreite gegen einen Fallback. Für die Kontrolle nach Installation der Marken-Schrift.
-function fontAvailable(family) {
-  try {
-    const ctx = document.createElement('canvas').getContext('2d');
-    const s = 'Marke ÄÖÜ agmw 123';
-    ctx.font = '72px monospace';
-    const base = ctx.measureText(s).width;
-    ctx.font = `72px ${family}, monospace`;
-    return Math.abs(ctx.measureText(s).width - base) > 0.5;
-  } catch { return false; }
-}
-
-// Kleiner, stabiler String-Hash (djb2) zur Erkennung "neues Deck vs. schon geladen".
-function simpleHash(s) {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
-}
-function decodeB64Utf8(s) {
-  return decodeURIComponent(escape(atob(decodeURIComponent(s))));
-}
-
-// Ermittelt ein Start-Deck aus (Priorität):
-//  1. Link-Fragment  #deck=<base64(JSON)>   → Deck steckt im Link (teilbar)
-//  2. URL-Parameter  ?deck=<url>            → Deck von einer URL laden
-//  3. lokale Datei   deck.json              → vom Agenten geschrieben
-async function getDeckSource() {
-  const m = location.hash.match(/[#&]deck=([^&]+)/);
-  if (m) { try { return { text: decodeB64Utf8(m[1]), kind: 'link' }; } catch {} }
-  const u = new URLSearchParams(location.search).get('deck');
-  if (u) { try { const r = await fetch(u, { cache: 'no-store' }); if (r.ok) return { text: await r.text(), kind: 'url' }; } catch {} }
-  try { const r = await fetch('deck.json', { cache: 'no-store' }); if (r.ok) return { text: await r.text(), kind: 'file' }; } catch {}
-  return null;
-}
-
-// Lädt ein neues Deck NUR, wenn es sich vom zuletzt geladenen unterscheidet —
-// so überschreibt ein Reload nicht die Bearbeitungen des Nutzers, aber eine neue
-// Generierung (geänderte deck.json / neuer Link) wird frisch übernommen.
-async function loadInitialDeck(store) {
-  const src = await getDeckSource();
-  if (!src) return;
-  const sig = 'deck:' + simpleHash(src.text);
-  if (localStorage.getItem('cpe.deckSig') === sig) return;   // schon geladen -> Edits behalten
-  try {
-    store.loadDeck(JSON.parse(src.text));
-    localStorage.setItem('cpe.deckSig', sig);
-    console.info(`[Deck] geladen aus ${src.kind}`);
-  } catch (e) { console.warn('[Deck] konnte nicht geladen werden:', e); }
-}
-
-// Build-Kennung. MUSS bei jedem Deploy gemeinsam mit version.txt erhöht werden.
-const BUILD = '2026-09-16-1';
-
-// Selbstheilung gegen gemischten Browser-/Pages-Cache: liegt eine neuere Version
-// vor (version.txt, no-store), lädt die Seite genau einmal frisch neu.
-async function checkVersion() {
-  try {
-    const res = await fetch('version.txt?ts=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return false;
-    const latest = (await res.text()).trim();
-    if (!latest || latest === BUILD) return false;
-    const k = 'cpe.reloadedFor';
-    if (sessionStorage.getItem(k) === latest) return false;   // schon versucht → keine Endlosschleife
-    sessionStorage.setItem(k, latest);
-    location.reload();
-    return true;
-  } catch { return false; }
-}
-
+// ---- Start --------------------------------------------------------------
 async function boot() {
-  if (await checkVersion()) return;              // neuer Build → Reload, hier abbrechen
+  const available = await loadFonts();
+  if (!available.length) { els.dims.textContent = 'Keine Schrift gefunden – bitte den Ordner fonts/ prüfen.'; return; }
+  if (!available.some((f) => f.id === state.font)) {
+    state.font = available.some((f) => f.id === DEFAULT_FONT) ? DEFAULT_FONT : FALLBACK_FONT;
+  }
+  els.font.innerHTML = available.map((f, i) =>
+    `<option value="${f.id}" style="font-family:'Folie ${f.id}'">${f.label}${i === 0 ? ' – Standard' : ''}</option>`).join('');
+  els.font.value = state.font;
 
-  // Schriften müssen für Canvas-Textsatz bereitstehen (Konzept 8.2).
-  if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch {} }
-  await preloadAll();
+  Object.assign(els.w, { min: LIMITS.minW, max: LIMITS.maxW, value: state.wcm });
+  Object.assign(els.h, { min: LIMITS.minH, max: LIMITS.maxH, value: state.hcm });
+  els.sizeHint.textContent = `Breite bis ${fmt(LIMITS.maxW)} cm, Höhe bis ${fmt(LIMITS.maxH)} cm. Alle Exporte enthalten rundum ${BLEED_MM} mm Beschnitt.`;
+  els.text.value = state.text;
 
-  const brandFont = fontAvailable(`'${BRAND_DISPLAY}'`);
-  console.info(`[Schrift] Marken-Display-Schrift ${brandFont ? 'verfügbar ✔ (wird verwendet)' : 'nicht gefunden → Fallback Inter. Name in src/model/brand.js (BRAND_DISPLAY) setzen.'}`);
+  buildSwatches(els.bg, 'bg', 'Hintergrundfarbe');
+  buildSwatches(els.fg, 'fg', 'Textfarbe');
+  syncSwatches();
 
-  const store = new Store();
-  await loadInitialDeck(store);                // ggf. Deck aus Link / URL / deck.json laden
-  const folder = await loadExternalAssets();   // Gradienten + DNA aus /assets registrieren
-  applyFolderBackgrounds(store, folder);       // Slides automatisch damit belegen
-  await preloadDeckAssets(store.deck);
-  const stageEl = document.getElementById('stage');
-  const renderer = new Renderer(stageEl, store);
-  const inlineEditor = new InlineEditor(store, renderer);
-  const ui = new UI(store, renderer, inlineEditor, folder);
-
-  // Rebuild bei Deck-Änderung, Selektions-Highlight bei Auswahländerung
-  store.on('deck', () => renderer.rebuild());
-  store.on('select', () => renderer.onSelectionChange());
-  renderer.fit();
-
-  // Nav-Buttons
-  document.getElementById('prevBtn').onclick = () => store.prev();
-  document.getElementById('nextBtn').onclick = () => store.next();
-
-  // Tastatur
-  document.addEventListener('keydown', (e) => {
-    if (inlineEditor.field != null) return;             // beim Tippen ignorieren
-    const mod = e.metaKey || e.ctrlKey;
-    if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); }
-    else if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); store.redo(); }
-    else if (e.key === 'ArrowRight') store.next();
-    else if (e.key === 'ArrowLeft') store.prev();
-    else if (e.key === 'Backspace' || e.key === 'Delete') {
-      const sel = store.selection;
-      if (sel?.kind === 'decor') { e.preventDefault(); store.removeDecor(sel.id); }
-      else if (sel?.kind === 'logo') { e.preventDefault(); store.deck.brand.show = false; store.selection = null; store.commit('logo-hide'); }
-    }
-  });
-
-  // Neuer Teilen-Link in bereits offenem Tab: neu laden, damit das Deck greift.
-  window.addEventListener('hashchange', () => { if (location.hash.includes('deck=')) location.reload(); });
-
-  window.__cpe = { store, renderer, ui };   // für Debugging in der Konsole
+  els.w.addEventListener('input', onSize);
+  els.h.addEventListener('input', onSize);
+  els.text.addEventListener('input', () => { state.text = els.text.value; draw(); save(); });
+  els.font.addEventListener('change', () => { state.font = els.font.value; draw(); save(); });
+  els.guides.addEventListener('change', draw);
+  document.querySelectorAll('[data-export]').forEach((b) => { b.onclick = () => runExport(b.dataset.export); });
+  new ResizeObserver(draw).observe(els.wrap);
+  draw();
 }
 
 boot();

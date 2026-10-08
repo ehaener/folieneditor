@@ -2,201 +2,75 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Editor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Folie gestalten</title>
   <link rel="stylesheet" href="./styles.css" />
-  <!-- Libs als UMD-Globals (window.Konva / window.jspdf), lokal vendored, vor den Modulen -->
-  <script src="./vendor/konva.min.js"></script>
-  <script src="./vendor/jspdf.umd.min.js"></script>
 </head>
 <body>
-  <!-- erzwingt Font-Download vor Canvas-Textsatz -->
-  <div class="font-preload" aria-hidden="true">
-    <span style="font-family:'Space Grotesk';font-weight:700">.</span>
-    <span style="font-family:'Inter';font-weight:400">.</span>
-    <span style="font-family:'Inter';font-weight:600">.</span>
-  </div>
-
   <div class="app">
-    <!-- TOOLBAR -->
-    <header class="toolbar">
-      <div class="group">
-        <button id="thumbsToggle" class="icon-btn" title="Seitenübersicht ein-/ausklappen" aria-label="Seitenübersicht">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-            <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/>
-            <line x1="6" y1="2.5" x2="6" y2="13.5"/>
-          </svg>
-        </button>
-        <select id="formatSelect" class="fmt-select" title="Format / Seitenverhältnis"></select>
-      </div>
-      <div class="group">
-        <button id="safeBtn" class="icon-btn" title="Sicherheitszonen (Raster)" aria-label="Sicherheitszonen">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="1.5"/>
-            <line x1="1.5" y1="6" x2="14.5" y2="6"/><line x1="1.5" y1="10.5" x2="14.5" y2="10.5"/>
-            <line x1="6" y1="1.5" x2="6" y2="14.5"/><line x1="10.5" y1="1.5" x2="10.5" y2="14.5"/>
-          </svg>
-        </button>
-        <div class="menu-wrap">
-          <button id="helpBtn" class="icon-btn" title="Hilfe" aria-label="Hilfe">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
-              <circle cx="8" cy="8" r="6.5"/>
-              <path d="M6.2 6.1a1.8 1.8 0 1 1 2.35 1.85c-.5.25-.9.65-.9 1.25v.25" stroke-linecap="round"/>
-              <circle cx="8" cy="11.8" r=".55" fill="currentColor" stroke="none"/>
-            </svg>
-          </button>
-          <div class="menu help-menu" id="helpMenu">
-            <div class="help-line">Klick auf ein Element wählt es aus und verschiebt es.</div>
-            <div class="help-line">Doppelklick öffnet das Tippen direkt im Layout.</div>
-            <div class="help-line">Für die Textfarbe erst das Element wählen, dann die Farbe.</div>
-            <div class="help-line help-meta">Stand: 04.08.2026, 17:00 Uhr (MESZ)</div>
-          </div>
+    <aside class="panel">
+      <section>
+        <h2>Größe</h2>
+        <div class="size">
+          <label class="field">
+            <span>Breite</span>
+            <span class="unit"><input id="w" type="number" inputmode="decimal" step="0.1" /><em>cm</em></span>
+          </label>
+          <span class="times" aria-hidden="true">×</span>
+          <label class="field">
+            <span>Höhe</span>
+            <span class="unit"><input id="h" type="number" inputmode="decimal" step="0.1" /><em>cm</em></span>
+          </label>
         </div>
-      </div>
-      <div class="group">
-        <button id="genBtn" class="primary" title="Folien mit KI erzeugen">Mit AI verbinden</button>
-        <div class="menu-wrap">
-          <button id="deckBtn">Deck ▾</button>
-          <div class="menu" id="deckMenu">
-            <button data-deck="import">Deck importieren …</button>
-            <button data-deck="paste">Deck einfügen (Text) …</button>
-          </div>
-          <input type="file" id="deckFile" accept=".json,application/json" hidden />
-        </div>
-        <div class="menu-wrap">
-          <button id="resetBtn">Zurücksetzen ▾</button>
-          <div class="menu" id="resetMenu">
-            <button data-reset="inhalte">Inhalte (Texte)</button>
-            <button data-reset="grafiken">Grafiken</button>
-            <button data-reset="key">API-Key</button>
-            <button data-reset="alles" class="danger">Alles zurücksetzen</button>
-          </div>
-        </div>
-        <div class="menu-wrap">
-          <button id="exportBtn" class="primary">Export ▾</button>
-          <div class="menu" id="exportMenu">
-            <button data-export="png">PNG · aktuelle Folie</button>
-            <button data-export="png-all">PNG · alle Folien</button>
-            <button data-export="pdf">PDF</button>
-            <button data-export="mp4">Video</button>
-          </div>
-        </div>
-      </div>
-    </header>
+        <p class="hint" id="sizeHint"></p>
+        <p class="error" id="sizeErr" role="alert"></p>
+      </section>
 
-    <!-- THUMBS -->
-    <aside class="thumbs" id="thumbs"></aside>
+      <section>
+        <h2><label for="text">Text</label></h2>
+        <textarea id="text" rows="3" maxlength="300" spellcheck="true" placeholder="Dein Text"></textarea>
+        <p class="hint">Neue Zeile mit Enter. Die Schrift passt sich automatisch an.</p>
+      </section>
 
-    <!-- STAGE -->
-    <main class="stage-area">
-      <div class="stage-wrap"><div id="stage"></div></div>
+      <section>
+        <h2><label for="font">Schriftart</label></h2>
+        <select id="font"></select>
+      </section>
 
-      <!-- ASSET-LEISTE -->
-      <div class="tray">
-        <div class="picker">
-          <button class="picker-btn" data-cat="background">Hintergrund <span class="caret">▾</span></button>
-          <div class="picker-panel" id="panel-background"></div>
+      <section>
+        <h2>Hintergrundfarbe</h2>
+        <div class="swatches" id="bgSw"></div>
+      </section>
+
+      <section>
+        <h2>Textfarbe</h2>
+        <div class="swatches" id="fgSw"></div>
+      </section>
+
+      <section class="export">
+        <h2>Exportieren</h2>
+        <div class="export-btns">
+          <button type="button" class="primary" data-export="pdf">PDF</button>
+          <button type="button" class="primary" data-export="svg">SVG</button>
+          <button type="button" class="primary" data-export="png">PNG</button>
         </div>
-        <div class="picker">
-          <button class="picker-btn" data-cat="overlay">Overlay <span class="caret">▾</span></button>
-          <div class="picker-panel" id="panel-overlay"></div>
-        </div>
-        <div class="picker">
-          <button class="picker-btn" data-cat="artwork">Artwork <span class="caret">▾</span></button>
-          <div class="picker-panel" id="panel-artwork"></div>
-        </div>
-        <div class="tray-group"><span class="tray-label">Textfarbe</span><div class="tray-row" id="trayText"></div></div>
+        <p class="hint" id="exportMsg">PDF und SVG sind Vektordateien in Originalgröße, der Text ist in Pfade umgewandelt. PNG mit 150 dpi.</p>
+      </section>
+    </aside>
+
+    <main class="stage">
+      <div class="canvas-wrap" id="wrap"><canvas id="preview" aria-label="Vorschau der Folie" role="img"></canvas></div>
+      <div class="stage-foot">
+        <p class="dims" id="dims"></p>
+        <label class="check"><input type="checkbox" id="guides" checked /> Hilfslinien</label>
       </div>
-
-      <div class="transport">
-        <button id="prevBtn">←</button>
-        <button id="playBtn" class="play">▶</button>
-        <input id="scrub" type="range" min="0" max="1000" value="0" />
-        <span id="timeLabel" class="time">0.0 / 0.0s</span>
-        <button id="nextBtn">→</button>
-      </div>
+      <ul class="legend" aria-label="Legende">
+        <li><i class="lg-bleed"></i>Beschnitt (2 mm, wird abgeschnitten)</li>
+        <li><i class="lg-trim"></i>Schnittkante</li>
+        <li><i class="lg-safe"></i>Sicherheitsabstand für Text</li>
+      </ul>
     </main>
   </div>
-
-  <!-- Export-Fortschritt -->
-  <div class="progress" id="progress">
-    <div class="progress-box">
-      <div class="progress-txt" id="progressTxt">Export …</div>
-      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-    </div>
-  </div>
-
-  <!-- Deck einfügen (vom Agenten generiertes deck.json) -->
-  <div class="modal" id="deckModal">
-    <div class="modal-box">
-      <div class="modal-title">Deck einfügen</div>
-      <p class="modal-hint">deck.json des Agenten hier einfügen — die Vorschau wird sofort damit gefüllt.</p>
-      <textarea id="deckPaste" spellcheck="false" placeholder='{ "meta": { … }, "slides": [ … ] }'></textarea>
-      <div class="modal-actions">
-        <button id="deckCancel">Abbrechen</button>
-        <button id="deckLoad" class="primary">Laden</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- KI: Folien aus Thema/Zielgruppe/Tonalität/Struktur erzeugen (Claude, eigener Key) -->
-  <div class="modal" id="genModal">
-    <div class="modal-box">
-      <div class="modal-title">Folien mit KI erzeugen</div>
-      <div class="gen-grid">
-        <div class="gen-field gen-wide">
-          <span>Anthropic API-Key</span>
-          <input id="genKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" />
-          <div class="gen-help" id="genKeyHelpBox">
-            <ol>
-              <li>Bei <b>console.anthropic.com</b> anmelden.</li>
-              <li>Unter <b>Billing</b> etwas Guthaben aufladen (geht ab wenigen $ – eine Deck-Generierung kostet nur Cent-Beträge).</li>
-              <li><b>API keys → Create Key</b>, den Schlüssel kopieren und hier einfügen.</li>
-            </ol>
-            <a class="gen-console-btn" href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic-Konsole öffnen ↗</a>
-            <p class="gen-help-note">Der Key bleibt in deinem Browser (nur diese Sitzung) und geht an niemanden außer Anthropic.</p>
-          </div>
-        </div>
-        <label class="gen-field">
-          <span>Modell</span>
-          <select id="genModel"></select>
-        </label>
-        <label class="gen-field">
-          <span>Anzahl Folien</span>
-          <input id="genCount" type="number" min="1" max="12" placeholder="automatisch" />
-        </label>
-        <label class="gen-field gen-wide">
-          <span>Thema / Quelltext</span>
-          <textarea id="genThema" rows="6" spellcheck="false" placeholder="Thema in einem Satz …"></textarea>
-          <div class="gen-count" id="themaCount"></div>
-        </label>
-        <label class="gen-field">
-          <span>Zielgruppe</span>
-          <input id="genZiel" type="text" placeholder="z. B. werdende Eltern" />
-        </label>
-        <label class="gen-field">
-          <span>Tonalität</span>
-          <input id="genTon" type="text" placeholder="z. B. warm, ermutigend" />
-        </label>
-        <label class="gen-field gen-wide">
-          <span>Struktur / Aufbau <span class="gen-opt">(optional)</span></span>
-          <textarea id="genStruktur" rows="2" spellcheck="false" placeholder="z. B. Einstieg, 3 Tipps, Abschluss mit Call-to-Action"></textarea>
-        </label>
-      </div>
-      <div id="genError" class="gen-error" hidden></div>
-      <div class="modal-actions">
-        <button id="genReset" class="gen-reset">Felder leeren</button>
-        <button id="genCancel">Abbrechen</button>
-        <button id="genRun" class="primary">Generieren</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="toasts" id="toasts"></div>
-
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
