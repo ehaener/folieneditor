@@ -157,3 +157,8 @@ Hochladen (`IMG_MAX_PX`) und die dpi-Grenze für die Unschärfe-Warnung (`IMG_MI
 
 Vorschau, PNG, SVG und PDF benutzen alle dasselbe Layout-Ergebnis aus `layout.js`
 (Textpfade + Bildausschnitt in mm). Deshalb sehen alle Ausgaben identisch aus.
+
+### Weitere Dokumente
+
+- [Shop-Anbindung an WooCommerce (Planung)](SHOP-ANBINDUNG.md)
+- [Testshop im Browser](../testshop/README.md)
