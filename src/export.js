@@ -4,7 +4,7 @@
 // Ein hochgeladenes Bild wird in seiner Originalauflösung eingebettet: Fotos als
 // JPEG, Logos mit Transparenz verlustfrei mit Alphakanal.
 
-import { drawCanvas, BLEED_MM } from './layout.js?v=20261008-2';
+import { drawCanvas, BLEED_MM } from './layout.js?v=20261008-3';
 
 const MAX_AREA = 16_000_000;   // Canvas-Grenze auf iPhones
 const MAX_SIDE = 16_000;
@@ -64,6 +64,19 @@ export async function exportPNG(d, lay, dpi = 150) {
   const realDpi = Math.round((c.width / P.w) * 25.4);
   c.width = c.height = 0;
   return { blob: await withDpi(blob, realDpi), dpi: realDpi };
+}
+
+// Kleines Vorschaubild ohne Hilfslinien (für Warenkorb und Bestellung im Shop).
+export async function exportPreview(d, lay, maxPx = 900) {
+  const { P } = lay;
+  const pxPerMm = maxPx / Math.max(P.w, P.h);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(P.w * pxPerMm));
+  c.height = Math.max(1, Math.round(P.h * pxPerMm));
+  drawCanvas(c.getContext('2d'), d, lay, pxPerMm);
+  const blob = await canvasBlob(c, 'image/png');
+  c.width = c.height = 0;
+  return blob;
 }
 
 // ---- SVG ------------------------------------------------------------------

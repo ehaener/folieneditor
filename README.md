@@ -15,6 +15,8 @@ Testshop mit WordPress und WooCommerce im Browser: [testshop/README.md](testshop
 
 Planung der Shop-Anbindung (WooCommerce): [docs/SHOP-ANBINDUNG.md](docs/SHOP-ANBINDUNG.md)
 
+**WordPress-Plugin** für den Shop (Editor auf der Produktseite, Bestellung mit Druck-PDF): [wordpress-plugin/README.md](wordpress-plugin/README.md)
+
 ## Starten
 
 Lokal:
@@ -25,7 +27,7 @@ Dann `http://localhost:4599/index.html` öffnen. Ein Doppelklick auf `index.html
 
 Online über GitHub Pages: **Settings → Pages → Deploy from a branch → main / (root)**.
 
-**Bei jeder Veröffentlichung** die Versionsnummer `?v=…` erhöhen, und zwar überall gleich: in `index.html` (CSS und `main.js`) und bei den Imports in `src/main.js` und `src/export.js`. GitHub Pages hält Dateien sonst etwa 10 Minuten im Browser-Cache, und alte und neue Dateien können sich mischen.
+**Bei jeder Veröffentlichung** die Versionsnummer `?v=…` erhöhen, und zwar überall gleich: in `index.html` (CSS und `main.js`) und bei allen Imports in `src/*.js` (z. B. `grep -rn "?v=" index.html src`). GitHub Pages hält Dateien sonst etwa 10 Minuten im Browser-Cache, und alte und neue Dateien können sich mischen.
 
 ## Exporte
 
@@ -53,10 +55,15 @@ Die mitgelieferten Schriften stehen unter der SIL Open Font License (siehe `font
 
 ## Dateien
 
-- `index.html`, `styles.css` – Oberfläche
-- `src/main.js` – Bedienung, Bild-Upload, Speicherstand im Browser
+- `index.html` – eigene Seite, startet den Editor
+- `styles.css` – Gestaltung (alles unter `.fe` gekapselt, damit es auch in fremden Seiten läuft)
+- `src/ui.js` – Markup des Editors
+- `src/main.js` – Bedienung, Bild-Upload, Speicherstand im Browser (`mount()`)
+- `src/shop.js` – Start im Shop: Preis, Warenkorb (WordPress-Plugin)
 - `src/layout.js` – Satz in Millimetern (Text und Bild), Beschnitt (2 mm) und Sicherheitsabstand (3 mm), Vorschau
 - `src/export.js` – PNG-, SVG- und PDF-Export
 - `src/fonts.js` – Schriftliste
 - `fonts/` – Schriftdateien
+- `wordpress-plugin/` – WordPress-/WooCommerce-Plugin
+- `testshop/` – Testshop im Browser
 - `vendor/opentype.min.mjs` – opentype.js 2.0 (MIT-Lizenz) zum Lesen der Schriften

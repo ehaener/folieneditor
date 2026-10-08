@@ -25,7 +25,7 @@ const loaded = new Map();   // id -> opentype.Font
 async function loadOne(f) {
   for (const file of f.files) {
     try {
-      const res = await fetch(`fonts/${file}`);
+      const res = await fetch(new URL(`../fonts/${file}`, import.meta.url));   // relativ zum Modul, nicht zur Seite
       if (!res.ok) continue;
       const buf = await res.arrayBuffer();
       loaded.set(f.id, parse(buf));
