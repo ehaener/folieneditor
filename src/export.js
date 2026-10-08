@@ -4,7 +4,7 @@
 // Ein hochgeladenes Bild wird in seiner Originalauflösung eingebettet: Fotos als
 // JPEG, Logos mit Transparenz verlustfrei mit Alphakanal.
 
-import { drawCanvas, BLEED_MM } from './layout.js';
+import { drawCanvas, BLEED_MM } from './layout.js?v=20261008-2';
 
 const MAX_AREA = 16_000_000;   // Canvas-Grenze auf iPhones
 const MAX_SIDE = 16_000;

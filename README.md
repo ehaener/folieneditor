@@ -21,6 +21,8 @@ Dann `http://localhost:4599/index.html` öffnen. Ein Doppelklick auf `index.html
 
 Online über GitHub Pages: **Settings → Pages → Deploy from a branch → main / (root)**.
 
+**Bei jeder Veröffentlichung** die Versionsnummer `?v=…` erhöhen, und zwar überall gleich: in `index.html` (CSS und `main.js`) und bei den Imports in `src/main.js` und `src/export.js`. GitHub Pages hält Dateien sonst etwa 10 Minuten im Browser-Cache, und alte und neue Dateien können sich mischen.
+
 ## Exporte
 
 | Format | Art | Inhalt |
