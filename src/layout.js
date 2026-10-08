@@ -1,9 +1,9 @@
-// Satz der Folie in Millimetern. Ergebnis: Hintergrundfläche + Textpfade,
+// Satz der Folie in Millimetern. Ergebnis: Hintergrundfläche, Bild + Textpfade,
 // die Vorschau, PNG, PDF und SVG gleichermaßen verwenden.
 //
 //   ┌──────────────────────────────┐  ← Druckformat (Endformat + 2 mm Beschnitt je Seite)
 //   │ ┌──────────────────────────┐ │  ← Schnittkante (bestelltes Endformat)
-//   │ │ ┌──────────────────────┐ │ │  ← Sicherheitsabstand (Text bleibt innerhalb)
+//   │ │ ┌──────────────────────┐ │ │  ← Sicherheitsabstand (Text und Logo bleiben innerhalb)
 //   │ │ │        TEXT          │ │ │
 //   │ │ └──────────────────────┘ │ │
 //   │ └──────────────────────────┘ │
@@ -23,13 +23,48 @@ function splitLines(text) {
   return l;
 }
 
-// Liefert { P, size, commands }: Druckformat, Schriftgröße (mm) und Pfadbefehle (mm, y nach unten).
-export function layout(d, font) {
+// Bild/Logo: links oder rechts neben dem Text (innerhalb des Sicherheitsabstands)
+// oder als Hintergrund, der das ganze Druckformat inkl. Beschnitt füllt.
+// Ohne Text steht ein Logo mittig.
+export const IMG_POSITIONS = [
+  ['left', 'Links neben dem Text'],
+  ['right', 'Rechts neben dem Text'],
+  ['bg', 'Hintergrund (ganze Fläche)'],
+];
+const IMG_MAX_SHARE = 0.5;    // Logo neben Text nimmt höchstens die halbe Breite ein
+
+// Liefert { P, size, commands, image }: Druckformat, Schriftgröße (mm), Pfadbefehle
+// (mm, y nach unten) und die Bildplatzierung (Ausschnitt in Bildpixeln, Ziel in mm).
+export function layout(d, font, img = null) {
   const P = printSize(d);
   const lines = splitLines(d.text);
-  const boxW = d.wcm * 10 - 2 * SAFE_MM;
+  const hasText = lines.some((l) => l.trim());
+  let boxX = BLEED_MM + SAFE_MM;
+  let boxW = d.wcm * 10 - 2 * SAFE_MM;
   const boxH = d.hcm * 10 - 2 * SAFE_MM;
-  if (!font || boxW <= 0 || boxH <= 0 || !lines.some((l) => l.trim())) return { P, size: 0, commands: [] };
+
+  let image = null;
+  const iw = img?.naturalWidth, ih = img?.naturalHeight;
+  if (iw > 0 && ih > 0 && boxW > 0 && boxH > 0) {
+    const alpha = img.src.startsWith('data:image/png');
+    if (d.imgPos === 'bg') {
+      const s = Math.max(P.w / iw, P.h / ih);   // füllend, überstehender Teil wird abgeschnitten
+      const sw = P.w / s, sh = P.h / s;
+      image = { el: img, alpha, sx: (iw - sw) / 2, sy: (ih - sh) / 2, sw, sh, x: 0, y: 0, w: P.w, h: P.h };
+    } else {
+      let h = boxH * Math.min(Math.max(d.imgScale || 100, 10), 100) / 100;
+      let w = h * iw / ih;
+      const maxW = hasText ? boxW * IMG_MAX_SHARE : boxW;
+      if (w > maxW) { w = maxW; h = w * ih / iw; }
+      const gap = Math.max(SAFE_MM, h * 0.2);
+      let x = P.w / 2 - w / 2;
+      if (hasText && d.imgPos === 'right') { x = boxX + boxW - w; boxW -= w + gap; }
+      else if (hasText) { x = boxX; boxX += w + gap; boxW -= w + gap; }
+      image = { el: img, alpha, sx: 0, sy: 0, sw: iw, sh: ih, x, y: P.h / 2 - h / 2, w, h };
+    }
+  }
+
+  if (!font || boxW <= 0 || boxH <= 0 || !hasText) return { P, size: 0, commands: [], image };
 
   const upm = font.unitsPerEm;
   const asc = font.ascender / upm;            // inkl. Platz für Umlaut-Punkte
@@ -46,14 +81,20 @@ export function layout(d, font) {
 
   const blockH = size * ((n - 1) * LINE_HEIGHT + asc + desc);
   const top = P.h / 2 - blockH / 2;
+  const cx = boxX + boxW / 2;
   const commands = [];
   lines.forEach((line, i) => {
     if (!line) return;
     const baseline = top + size * asc + i * size * LINE_HEIGHT;
-    const x = P.w / 2 - font.getAdvanceWidth(line, size, opts) / 2;
+    const x = cx - font.getAdvanceWidth(line, size, opts) / 2;
     commands.push(...font.getPath(line, x, baseline, size, opts).commands);
   });
-  return { P, size, commands };
+  return { P, size, commands, image };
+}
+
+// Effektive Bildauflösung im Druck (dpi), für den Hinweis bei zu kleinen Bildern.
+export function imageDpi(image) {
+  return image ? Math.round(image.sw / (image.w / 25.4)) : 0;
 }
 
 // ---- Canvas (Vorschau und PNG) ------------------------------------------
@@ -75,6 +116,11 @@ export function drawCanvas(ctx, d, lay, pxPerMm, { guides = false } = {}) {
   ctx.setTransform(pxPerMm, 0, 0, pxPerMm, 0, 0);
   ctx.fillStyle = d.bg;
   ctx.fillRect(0, 0, P.w, P.h);
+  const im = lay.image;
+  if (im) {
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(im.el, im.sx, im.sy, im.sw, im.sh, im.x, im.y, im.w, im.h);
+  }
   if (lay.commands.length) {
     ctx.fillStyle = d.fg;
     ctx.fill(toPath2D(lay.commands));

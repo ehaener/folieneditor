@@ -67,6 +67,20 @@ textarea { resize: vertical; min-height: 72px; line-height: 1.35; }
 .swatch.custom { background: var(--c, conic-gradient(#e53935, #fdd835, #43a047, #1e88e5, #8e24aa, #e53935)); display: block; }
 .swatch.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
 
+.img-pick { display: flex; align-items: center; gap: 12px; }
+.file-btn {
+  position: relative; display: inline-block; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
+  color: var(--accent); font: 500 15px 'UI Fredoka', system-ui, sans-serif; cursor: pointer; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.link-btn { border: 0; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.img-opts { display: grid; gap: 10px; margin-top: 12px; }
+.img-opts[hidden], .img-pick [hidden], #imgScaleField[hidden] { display: none; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.hint.warn { color: #9a5b00; }
+
 section.export {
   position: sticky; bottom: -28px; margin: 0 -20px -28px; padding: 14px 20px 18px;
   background: var(--panel); border-bottom: 0; border-top: 1px solid var(--line);
@@ -111,5 +125,19 @@ canvas { display: block; box-shadow: 0 1px 2px rgba(0,0,0,.12), 0 8px 24px rgba(
   .stage { padding: 12px; }
   .canvas-wrap { min-height: 110px; flex: none; height: 26vh; }
   .panel { border-right: 0; border-top: 1px solid var(--line); }
-  section.export { position: static; margin: 0; padding: 14px 0 0; border-top: 0; box-shadow: none; }
+  .img-pick { display: flex; align-items: center; gap: 12px; }
+.file-btn {
+  position: relative; display: inline-block; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 8px;
+  color: var(--accent); font: 500 15px 'UI Fredoka', system-ui, sans-serif; cursor: pointer; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.file-btn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.link-btn { border: 0; background: none; padding: 4px 0; font: inherit; font-size: 14px; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.img-opts { display: grid; gap: 10px; margin-top: 12px; }
+.img-opts[hidden], .img-pick [hidden], #imgScaleField[hidden] { display: none; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.hint.warn { color: #9a5b00; }
+
+section.export { position: static; margin: 0; padding: 14px 0 0; border-top: 0; box-shadow: none; }
 }

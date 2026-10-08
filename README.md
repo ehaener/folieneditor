@@ -4,9 +4,12 @@ Schlanker Editor für individuell beschriftete Folien, z. B. Treppenfolien.
 
 - Breite und Höhe in cm (höchstens 200 × 15 cm, mindestens 5 × 2 cm)
 - Text (mehrzeilig), passt sich automatisch an die Fläche an
+- Bild oder Logo hochladen: links oder rechts neben dem Text oder als Hintergrund
 - Schriftart per Dropdown, Grundschrift als Standard
 - Hintergrund- und Textfarbe
 - Export als **PDF**, **SVG** oder **PNG**, jeweils mit 2 mm Beschnitt auf allen Seiten
+
+Ausführliche Beschreibung aller Funktionen: [docs/DOKUMENTATION.md](docs/DOKUMENTATION.md)
 
 ## Starten
 
@@ -22,8 +25,8 @@ Online über GitHub Pages: **Settings → Pages → Deploy from a branch → mai
 
 | Format | Art | Inhalt |
 |---|---|---|
-| PDF | Vektor | Seitengröße = Endformat + 2 mm Beschnitt je Seite, mit TrimBox (Endformat) und BleedBox für die Druckerei |
-| SVG | Vektor | Maße in mm, Text als Pfade |
+| PDF | Vektor | Seitengröße = Endformat + 2 mm Beschnitt je Seite, mit TrimBox (Endformat) und BleedBox für die Druckerei; Fotos als JPEG, Logos mit Transparenz |
+| SVG | Vektor | Maße in mm, Text als Pfade, Bild eingebettet |
 | PNG | Raster | 150 dpi, Auflösung in der Datei eingetragen |
 
 In PDF und SVG ist der Text in Pfade umgewandelt. Die Dateien sehen deshalb überall gleich aus, auch wenn die Schrift auf dem Rechner der Druckerei fehlt. Alle drei Formate werden aus denselben Schriftdaten erzeugt und sind deckungsgleich.
@@ -45,8 +48,8 @@ Die mitgelieferten Schriften stehen unter der SIL Open Font License (siehe `font
 ## Dateien
 
 - `index.html`, `styles.css` – Oberfläche
-- `src/main.js` – Bedienung, Speicherstand im Browser
-- `src/layout.js` – Satz in Millimetern, Beschnitt (2 mm) und Sicherheitsabstand (3 mm), Vorschau
+- `src/main.js` – Bedienung, Bild-Upload, Speicherstand im Browser
+- `src/layout.js` – Satz in Millimetern (Text und Bild), Beschnitt (2 mm) und Sicherheitsabstand (3 mm), Vorschau
 - `src/export.js` – PNG-, SVG- und PDF-Export
 - `src/fonts.js` – Schriftliste
 - `fonts/` – Schriftdateien

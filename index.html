@@ -33,6 +33,20 @@
       </section>
 
       <section>
+        <h2>Bild oder Logo</h2>
+        <div class="img-pick">
+          <label class="file-btn"><input type="file" id="imgFile" accept="image/*" /><span id="imgPickLabel">Bild wählen …</span></label>
+          <button type="button" class="link-btn" id="imgRemove" hidden>Entfernen</button>
+        </div>
+        <div class="img-opts" id="imgOpts" hidden>
+          <label class="field"><span>Position</span><select id="imgPos"></select></label>
+          <label class="field" id="imgScaleField"><span>Größe <output id="imgScaleOut"></output></span><input type="range" id="imgScale" min="30" max="100" step="5" /></label>
+        </div>
+        <p class="hint" id="imgHint">Optional, z. B. ein Logo oder Foto. Logos am besten als PNG mit transparentem Hintergrund.</p>
+        <p class="error" id="imgErr" role="alert"></p>
+      </section>
+
+      <section>
         <h2><label for="font">Schriftart</label></h2>
         <select id="font"></select>
       </section>
@@ -54,7 +68,7 @@
           <button type="button" class="primary" data-export="svg">SVG</button>
           <button type="button" class="primary" data-export="png">PNG</button>
         </div>
-        <p class="hint" id="exportMsg">PDF und SVG sind Vektordateien in Originalgröße, der Text ist in Pfade umgewandelt. PNG mit 150 dpi.</p>
+        <p class="hint" id="exportMsg">PDF und SVG sind Vektordateien in Originalgröße, der Text ist in Pfade umgewandelt, Bilder sind eingebettet. PNG mit 150 dpi.</p>
       </section>
     </aside>
 
@@ -67,7 +81,7 @@
       <ul class="legend" aria-label="Legende">
         <li><i class="lg-bleed"></i>Beschnitt (2 mm, wird abgeschnitten)</li>
         <li><i class="lg-trim"></i>Schnittkante</li>
-        <li><i class="lg-safe"></i>Sicherheitsabstand für Text</li>
+        <li><i class="lg-safe"></i>Sicherheitsabstand für Text und Logo</li>
       </ul>
     </main>
   </div>

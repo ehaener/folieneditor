@@ -1,6 +1,8 @@
 // Export der Folie als PNG (Raster), SVG und PDF (beide Vektor, Text als Pfade).
 // Alle Dateien enthalten rundum 2 mm Beschnitt. Das PDF trägt zusätzlich
 // TrimBox (Endformat) und BleedBox (mit Beschnitt), wie Druckereien es erwarten.
+// Ein hochgeladenes Bild wird in seiner Originalauflösung eingebettet: Fotos als
+// JPEG, Logos mit Transparenz verlustfrei mit Alphakanal.
 
 import { drawCanvas, BLEED_MM } from './layout.js';
 
@@ -14,6 +16,22 @@ export function download(blob, name) {
   a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+const canvasBlob = (c, type, q) => new Promise((res, rej) =>
+  c.toBlob((b) => (b ? res(b) : rej(new Error('Bild konnte nicht erzeugt werden.'))), type, q));
+
+// Sichtbaren Bildausschnitt in Originalauflösung auf ein eigenes Canvas bringen.
+function imageCanvas(im) {
+  let w = Math.max(1, Math.round(im.sw)), h = Math.max(1, Math.round(im.sh));
+  const f = Math.min(1, Math.sqrt(MAX_AREA / (w * h)));
+  w = Math.max(1, Math.round(w * f)); h = Math.max(1, Math.round(h * f));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(im.el, im.sx, im.sy, im.sw, im.sh, 0, 0, w, h);
+  return c;
 }
 
 // ---- PNG ------------------------------------------------------------------
@@ -42,7 +60,7 @@ export async function exportPNG(d, lay, dpi = 150) {
   c.width = Math.round(P.w * pxPerMm);
   c.height = Math.round(P.h * pxPerMm);
   drawCanvas(c.getContext('2d'), d, lay, pxPerMm);
-  const blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('PNG konnte nicht erzeugt werden.'))), 'image/png'));
+  const blob = await canvasBlob(c, 'image/png');
   const realDpi = Math.round((c.width / P.w) * 25.4);
   c.width = c.height = 0;
   return { blob: await withDpi(blob, realDpi), dpi: realDpi };
@@ -59,14 +77,22 @@ function svgPath(commands) {
 }
 const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
+function svgImage(im) {
+  if (!im) return '';
+  const c = imageCanvas(im);
+  const url = im.alpha ? c.toDataURL('image/png') : c.toDataURL('image/jpeg', 0.92);
+  c.width = c.height = 0;
+  return `  <image id="bild" x="${n(im.x)}" y="${n(im.y)}" width="${n(im.w)}" height="${n(im.h)}" preserveAspectRatio="none" xlink:href="${url}"/>\n`;
+}
+
 export function exportSVG(d, lay, meta = {}) {
   const { P } = lay;
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${n(P.w)}mm" height="${n(P.h)}mm" viewBox="0 0 ${n(P.w)} ${n(P.h)}">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${n(P.w)}mm" height="${n(P.h)}mm" viewBox="0 0 ${n(P.w)} ${n(P.h)}">
   <title>Folie ${esc(d.wcm)} × ${esc(d.hcm)} cm (inkl. ${BLEED_MM} mm Beschnitt)</title>
   <desc>Endformat ${esc(d.wcm)} × ${esc(d.hcm)} cm, Beschnitt ${BLEED_MM} mm je Seite. Schrift: ${esc(meta.font || '')}. Text: ${esc(d.text)}</desc>
   <rect id="hintergrund" x="0" y="0" width="${n(P.w)}" height="${n(P.h)}" fill="${esc(d.bg)}"/>
-${lay.commands.length ? `  <path id="text" d="${svgPath(lay.commands)}" fill="${esc(d.fg)}"/>\n` : ''}</svg>
+${svgImage(lay.image)}${lay.commands.length ? `  <path id="text" d="${svgPath(lay.commands)}" fill="${esc(d.fg)}"/>\n` : ''}</svg>
 `;
   return new Blob([svg], { type: 'image/svg+xml' });
 }
@@ -94,36 +120,82 @@ function pdfPath(commands) {
   return out.join('\n');
 }
 
-export function exportPDF(d, lay) {
+async function deflate(bytes) {
+  const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// Bild-XObject (und bei Transparenz eine SMask) als { dict, data }.
+async function pdfImage(im) {
+  const c = imageCanvas(im);
+  const head = `/Type /XObject /Subtype /Image /Width ${c.width} /Height ${c.height} /BitsPerComponent 8`;
+  try {
+    if (!im.alpha) {
+      const jpg = new Uint8Array(await (await canvasBlob(c, 'image/jpeg', 0.92)).arrayBuffer());
+      return { image: { dict: `${head} /ColorSpace /DeviceRGB /Filter /DCTDecode`, data: jpg }, smask: null };
+    }
+    const px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    const count = c.width * c.height;
+    const rgb = new Uint8Array(count * 3), a = new Uint8Array(count);
+    for (let i = 0; i < count; i++) {
+      rgb[i * 3] = px[i * 4]; rgb[i * 3 + 1] = px[i * 4 + 1]; rgb[i * 3 + 2] = px[i * 4 + 2];
+      a[i] = px[i * 4 + 3];
+    }
+    return {
+      image: { dict: `${head} /ColorSpace /DeviceRGB /Filter /FlateDecode`, data: await deflate(rgb) },
+      smask: { dict: `${head} /ColorSpace /DeviceGray /Filter /FlateDecode`, data: await deflate(a) },
+    };
+  } finally { c.width = c.height = 0; }
+}
+
+export async function exportPDF(d, lay) {
   const { P } = lay;
   const k = 72 / 25.4;                            // mm → pt
   const W = n(P.w * k), H = n(P.h * k), b = n(BLEED_MM * k);
+  const im = lay.image;
   const content = [
     'q',
     `${k.toFixed(6)} 0 0 ${(-k).toFixed(6)} 0 ${H} cm`,
     `${rgb(d.bg)} rg`,
     `0 0 ${n(P.w)} ${n(P.h)} re f`,
+    im ? `q ${n(im.w)} 0 0 ${n(-im.h)} ${n(im.x)} ${n(im.y + im.h)} cm /Im1 Do Q` : '',
     lay.commands.length ? `${rgb(d.fg)} rg\n${pdfPath(lay.commands)}\nf` : '',
     'Q',
   ].join('\n');
 
+  const enc = new TextEncoder();
+  const img = im ? await pdfImage(im) : null;
   const title = `Folie ${d.wcm} x ${d.hcm} cm`.replace(/[()\\]/g, '');
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
     `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /BleedBox [0 0 ${W} ${H}] ` +
-      `/TrimBox [${b} ${b} ${n(W - b)} ${n(H - b)}] /Resources << >> /Contents 4 0 R >>`,
-    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+      `/TrimBox [${b} ${b} ${n(W - b)} ${n(H - b)}] /Resources << ${img ? '/XObject << /Im1 6 0 R >> ' : ''}>> /Contents 4 0 R >>`,
+    { dict: '', data: enc.encode(content) },
     `<< /Title (${title}) /Creator (Folieneditor) >>`,
   ];
+  if (img) {
+    objects.push(img.smask ? { ...img.image, dict: `${img.image.dict} /SMask 7 0 R` } : img.image);
+    if (img.smask) objects.push(img.smask);
+  }
 
-  // Alles ASCII → Zeichenzahl = Bytezahl
-  let pdf = '%PDF-1.4\n';
+  // Byteweise zusammensetzen, weil Bilddaten binär sind
+  const chunks = [];
+  let len = 0;
+  const put = (x) => { const u = typeof x === 'string' ? enc.encode(x) : x; chunks.push(u); len += u.length; };
+  put('%PDF-1.4\n');
+  put(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a]));   // Binär-Kennung
   const offsets = [];
-  objects.forEach((o, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
-  const xref = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  pdf += offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('');
-  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return new Blob([pdf], { type: 'application/pdf' });
+  objects.forEach((o, i) => {
+    offsets.push(len);
+    put(`${i + 1} 0 obj\n`);
+    if (typeof o === 'string') put(o);
+    else { put(`<< ${o.dict ? `${o.dict} ` : ''}/Length ${o.data.length} >>\nstream\n`); put(o.data); put('\nendstream'); }
+    put('\nendobj\n');
+  });
+  const xref = len;
+  put(`xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`);
+  put(offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join(''));
+  put(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R /Info 5 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(chunks, { type: 'application/pdf' });
 }
