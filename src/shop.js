@@ -4,8 +4,8 @@
 // "In den Warenkorb" Druck-PDF und Vorschaubild erzeugt und mit der Gestaltung
 // an WooCommerce geschickt. Der Preis wird dort auf dem Server neu berechnet.
 
-import { mount } from './main.js?v=20261008-3';
-import { exportPDF, exportPreview } from './export.js?v=20261008-3';
+import { mount } from './main.js?v=20261014-1';
+import { exportPDF, exportPreview } from './export.js?v=20261014-1';
 
 // Gleiche Formel wie im Plugin (folieneditor_price): Grundpreis + Fläche × m²-Preis, mindestens Mindestpreis
 export function unitPrice(p, wcm, hcm) {

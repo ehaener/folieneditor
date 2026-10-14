@@ -11,17 +11,43 @@ const FOLIENEDITOR_FONTS = [
 	'comic'        => 'Comic Neue',
 	'fredoka'      => 'Fredoka',
 ];
+// Farbfelder des Editors in CMYK (%), gleiche Liste wie in src/color.js
 const FOLIENEDITOR_COLORS = [
-	'#ffffff' => 'Weiß', '#1d1d1b' => 'Schwarz', '#8d8d8d' => 'Grau', '#d62828' => 'Rot',
-	'#f28c28' => 'Orange', '#ffd23f' => 'Gelb', '#8cc63f' => 'Hellgrün', '#2e8b57' => 'Grün',
-	'#1fb5ad' => 'Türkis', '#4fb3e8' => 'Hellblau', '#1f5fad' => 'Blau', '#7b4fa0' => 'Lila',
-	'#e5579b' => 'Pink', '#8b5a2b' => 'Braun',
+	'0,0,0,0'      => 'Weiß',     '0,0,0,100'   => 'Schwarz',  '0,0,0,50'   => 'Grau',
+	'0,95,100,0'   => 'Rot',      '0,50,100,0'  => 'Orange',   '0,15,90,0'  => 'Gelb',
+	'50,0,100,0'   => 'Hellgrün', '80,0,80,20'  => 'Grün',     '75,0,35,0'  => 'Türkis',
+	'60,10,0,0'    => 'Hellblau', '100,60,0,0'  => 'Blau',     '60,85,0,0'  => 'Lila',
+	'0,75,0,0'     => 'Pink',     '30,65,90,30' => 'Braun',
 ];
 const FOLIENEDITOR_IMG_POS = [
 	'left'  => 'links neben dem Text',
 	'right' => 'rechts neben dem Text',
 	'bg'    => 'als Hintergrund',
 ];
+
+// Farbe als CMYK in Prozent: [C, M, Y, K], jeweils ganze Zahl 0–100. Sonst null.
+function folieneditor_cmyk( $v ): ?array {
+	if ( ! is_array( $v ) || 4 !== count( $v ) ) {
+		return null;
+	}
+	$out = [];
+	foreach ( array_values( $v ) as $n ) {
+		if ( ! is_numeric( $n ) || $n < 0 || $n > 100 ) {
+			return null;
+		}
+		$out[] = (int) round( $n );
+	}
+	return $out;
+}
+
+function folieneditor_color_label( $cmyk ): string {
+	if ( ! is_array( $cmyk ) ) {
+		return strtoupper( (string) $cmyk );   // ältere Warenkörbe mit RGB-Farben
+	}
+	$name = FOLIENEDITOR_COLORS[ implode( ',', $cmyk ) ] ?? '';
+	$vals = vsprintf( 'C%d M%d Y%d K%d', $cmyk );
+	return $name ? "$name ($vals)" : $vals;
+}
 
 // Prüft die Gestaltung aus dem Browser. Gibt ein bereinigtes Array oder WP_Error zurück.
 function folieneditor_parse_design( string $json ) {
@@ -41,9 +67,8 @@ function folieneditor_parse_design( string $json ) {
 	}
 	$text  = mb_substr( sanitize_textarea_field( (string) ( $d['text'] ?? '' ) ), 0, 300 );
 	$font  = (string) ( $d['font'] ?? '' );
-	$hex   = fn( $v ) => preg_match( '/^#[0-9a-f]{6}$/i', (string) $v ) ? strtolower( $v ) : '';
-	$bg    = $hex( $d['bg'] ?? '' );
-	$fg    = $hex( $d['fg'] ?? '' );
+	$bg    = folieneditor_cmyk( $d['bg'] ?? null );
+	$fg    = folieneditor_cmyk( $d['fg'] ?? null );
 	$pos   = (string) ( $d['imgPos'] ?? '' );
 	if ( ! isset( FOLIENEDITOR_FONTS[ $font ] ) || ! $bg || ! $fg || ( $pos && ! isset( FOLIENEDITOR_IMG_POS[ $pos ] ) ) ) {
 		return new WP_Error( 'folieneditor', 'Die Gestaltung ist ungültig. Bitte die Seite neu laden und noch einmal versuchen.' );
@@ -66,13 +91,12 @@ function folieneditor_parse_design( string $json ) {
 // Lesbare Zeilen für Warenkorb, Bestellung und E-Mails
 function folieneditor_rows( array $d ): array {
 	$cm    = fn( $v ) => number_format_i18n( $v, floor( $v ) == $v ? 0 : 1 );
-	$color = fn( $hex ) => FOLIENEDITOR_COLORS[ $hex ] ?? strtoupper( $hex );
 	$rows  = [
 		'Größe'       => $cm( $d['wcm'] ) . ' × ' . $cm( $d['hcm'] ) . ' cm',
 		'Text'        => '' === trim( $d['text'] ) ? '–' : $d['text'],
 		'Schrift'     => FOLIENEDITOR_FONTS[ $d['font'] ],
-		'Hintergrund' => $color( $d['bg'] ),
-		'Textfarbe'   => $color( $d['fg'] ),
+		'Hintergrund' => folieneditor_color_label( $d['bg'] ),
+		'Textfarbe'   => folieneditor_color_label( $d['fg'] ),
 	];
 	if ( $d['imgPos'] ) {
 		$rows['Bild/Logo'] = FOLIENEDITOR_IMG_POS[ $d['imgPos'] ] . ( 'bg' !== $d['imgPos'] && $d['imgScale'] < 100 ? " ({$d['imgScale']} %)" : '' );

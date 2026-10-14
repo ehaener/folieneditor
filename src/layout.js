@@ -9,6 +9,8 @@
 //   │ └──────────────────────────┘ │
 //   └──────────────────────────────┘
 
+import { cmykToHex } from './color.js?v=20261014-1';
+
 export const BLEED_MM = 2;
 export const SAFE_MM = 3;
 const LINE_HEIGHT = 1.2;
@@ -114,7 +116,7 @@ export function drawCanvas(ctx, d, lay, pxPerMm, { guides = false } = {}) {
   const { P } = lay;
   ctx.save();
   ctx.setTransform(pxPerMm, 0, 0, pxPerMm, 0, 0);
-  ctx.fillStyle = d.bg;
+  ctx.fillStyle = cmykToHex(d.bg);
   ctx.fillRect(0, 0, P.w, P.h);
   const im = lay.image;
   if (im) {
@@ -122,7 +124,7 @@ export function drawCanvas(ctx, d, lay, pxPerMm, { guides = false } = {}) {
     ctx.drawImage(im.el, im.sx, im.sy, im.sw, im.sh, im.x, im.y, im.w, im.h);
   }
   if (lay.commands.length) {
-    ctx.fillStyle = d.fg;
+    ctx.fillStyle = cmykToHex(d.fg);
     ctx.fill(toPath2D(lay.commands));
   }
   if (guides) drawGuides(ctx, d, P, pxPerMm);

@@ -68,8 +68,33 @@ Vereinslogo, Schullogo oder ein Foto.
 
 ### 5. Farben
 
+Alle Farben werden in **CMYK** festgelegt, also so, wie gedruckt wird.
+
 - Je 14 feste Farben für **Hintergrund** und **Text**
-- Dazu ein Farbwähler für **eigene Farben**
+- Unter den Farbfeldern stehen die **CMYK-Werte** (C, M, Y, K in Prozent) der gewählten Farbe.
+  Wer dort eigene Werte eintippt, bekommt eine **eigene Farbe**, z. B. die Hausfarbe der Schule.
+- Die Farben am Bildschirm sind eine **Annäherung**. Monitore zeigen RGB, deshalb rechnet
+  der Editor CMYK in eine möglichst ähnliche Bildschirmfarbe um (Euroskala auf gestrichenem
+  Papier). Verbindlich sind die CMYK-Werte.
+
+| Farbe | C | M | Y | K |
+|---|---|---|---|---|
+| Weiß | 0 | 0 | 0 | 0 |
+| Schwarz | 0 | 0 | 0 | 100 |
+| Grau | 0 | 0 | 0 | 50 |
+| Rot | 0 | 95 | 100 | 0 |
+| Orange | 0 | 50 | 100 | 0 |
+| Gelb | 0 | 15 | 90 | 0 |
+| Hellgrün | 50 | 0 | 100 | 0 |
+| Grün | 80 | 0 | 80 | 20 |
+| Türkis | 75 | 0 | 35 | 0 |
+| Hellblau | 60 | 10 | 0 | 0 |
+| Blau | 100 | 60 | 0 | 0 |
+| Lila | 60 | 85 | 0 | 0 |
+| Pink | 0 | 75 | 0 | 0 |
+| Braun | 30 | 65 | 90 | 30 |
+
+Die Liste steht in `src/color.js` (und gleich im Plugin in `includes/cart.php`).
 
 ### 6. Vorschau
 
@@ -93,8 +118,13 @@ Alle Exporte enthalten rundum **2 mm Beschnitt**.
 - Der Text ist in PDF und SVG in **Pfade umgewandelt** – die Datei sieht bei der
   Druckerei genauso aus, auch wenn dort die Schrift fehlt.
 - Alle drei Formate sind deckungsgleich.
-- Farben werden als **RGB** ausgegeben. Im CMYK-Druck können kräftige Töne (Türkis,
-  Grün, Pink) etwas anders aussehen.
+- **Farben im PDF:** Hintergrund und Text stehen als **CMYK** im PDF (DeviceCMYK), genau mit
+  den gewählten Werten. Die Druckerei muss nichts umrechnen.
+- **SVG und PNG** können kein CMYK. Dort steht eine RGB-Annäherung. Im SVG sind die
+  CMYK-Werte zusätzlich vermerkt (`data-cmyk` und Beschreibung).
+- **Hochgeladene Bilder** bleiben im PDF in RGB, wie sie hochgeladen wurden. Die Druckerei
+  rechnet sie mit ihrem Farbprofil um. Für exakte Logofarben das Logo als Vektor bei der
+  Druckerei nachfragen.
 - Dateiname z. B. `folie_100x15cm.pdf`
 
 ### 8. Speichern
@@ -152,6 +182,7 @@ Hochladen (`IMG_MAX_PX`) und die dpi-Grenze für die Unschärfe-Warnung (`IMG_MI
 | `src/ui.js` | Markup des Editors |
 | `src/main.js` | Bedienung, Bild-Upload, Speicherstand im Browser (`mount()`) |
 | `src/shop.js` | Start im Shop: Preis und Warenkorb |
+| `src/color.js` | Farbpalette in CMYK, Umrechnung für den Bildschirm |
 | `src/layout.js` | Satz in Millimetern: Text, Bildplatzierung, Beschnitt, Hilfslinien |
 | `src/export.js` | PNG-, SVG- und PDF-Export (PDF ohne Fremdbibliothek) |
 | `src/fonts.js` | Schriftliste und Laden der Schriften |

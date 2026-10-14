@@ -10,7 +10,7 @@ const DOWNLOAD = `
           <button type="button" class="fe-primary" data-export="svg">SVG</button>
           <button type="button" class="fe-primary" data-export="png">PNG</button>
         </div>
-        <p class="fe-hint" id="fe-exportMsg">PDF und SVG sind Vektordateien in Originalgröße, der Text ist in Pfade umgewandelt, Bilder sind eingebettet. PNG mit 150 dpi.</p>
+        <p class="fe-hint" id="fe-exportMsg">PDF und SVG sind Vektordateien in Originalgröße, der Text ist in Pfade umgewandelt, Bilder sind eingebettet. Das PDF enthält die Farben in CMYK. PNG mit 150 dpi.</p>
       </section>`;
 
 const SHOP = `
@@ -73,6 +73,7 @@ export function template({ shop = false } = {}) {
       <section>
         <h2>Hintergrundfarbe</h2>
         <div class="fe-swatches" id="fe-bgSw"></div>
+        <p class="fe-hint">Farbwerte in CMYK (Prozent), so werden sie gedruckt. Die Farben am Bildschirm sind eine Annäherung.</p>
       </section>
 
       <section>

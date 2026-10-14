@@ -40,7 +40,7 @@ Version ersetzt werden soll → **Ersetzen**.
 - Der Preis aktualisiert sich live, auch für mehrere Stück.
 - Bei Klick auf **In den Warenkorb** erzeugt der Browser das Druck-PDF und ein Vorschaubild und
   schickt beides mit der Gestaltung an den Shop.
-- Im Warenkorb stehen das Vorschaubild, die Größe, der Text, die Schrift, die Farben und das Logo.
+- Im Warenkorb stehen das Vorschaubild, die Größe, der Text, die Schrift, die Farben (mit CMYK-Werten, z. B. „Blau (C100 M60 Y0 K0)“) und das Logo.
 - Der Produktpreis wird als **„ab 19,00 €“** angezeigt (Mindestpreis).
 - In Produktlisten heißt der Knopf **„Jetzt gestalten“** und führt zur Produktseite.
 
@@ -48,7 +48,7 @@ Version ersetzt werden soll → **Ersetzen**.
 
 - In der Bestellung steht unter der Position die Gestaltung (Größe, Text, Schrift, Farben, Bild),
   dazu ein Vorschaubild und der Knopf **„Druck-PDF herunterladen“**.
-  Dateiname z. B. `bestellung-1234_pos-5_120x12cm.pdf`.
+  Dateiname z. B. `bestellung-1234_pos-5_120x12cm.pdf`. Hintergrund und Text sind darin in CMYK.
 - Die Gestaltung steht auch in den Bestell-Mails an Kunde und Shop.
 
 ### Sicherheit
@@ -137,6 +137,7 @@ durchgespielt wurden:
 `vendor/`, `styles.css`) ins Plugin und schreibt `dist/folieneditor-woocommerce.zip`.
 Nach Änderungen am Editor oder Plugin neu bauen und `FOLIENEDITOR_VERSION` erhöhen.
 
-Im Shop startet `src/shop.js` den Editor. Die Preisformel steht doppelt: in `src/shop.js`
+Im Shop startet `src/shop.js` den Editor. Die Farbpalette steht in `src/color.js` und in
+`includes/cart.php` (`FOLIENEDITOR_COLORS`). Bei Änderungen beide anpassen. Die Preisformel steht doppelt: in `src/shop.js`
 (`unitPrice`, nur für die Anzeige) und in `includes/settings.php` (`folieneditor_price`,
 verbindlich). Bei Änderungen beide anpassen.
