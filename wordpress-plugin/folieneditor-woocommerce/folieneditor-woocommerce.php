@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Folieneditor für WooCommerce
  * Description:       Kunden gestalten Treppenfolien direkt auf der Produktseite (Größe, Text, Logo, Schrift, Farben). Der Preis wird aus den Maßen berechnet, das Druck-PDF hängt an der Bestellung.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.5
  * Requires PHP:      7.4
  * Author:            ehaener
@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'FOLIENEDITOR_VERSION', '1.1.0' );
+define( 'FOLIENEDITOR_VERSION', '1.2.0' );
 define( 'FOLIENEDITOR_FILE', __FILE__ );
 define( 'FOLIENEDITOR_DIR', plugin_dir_path( __FILE__ ) );
 define( 'FOLIENEDITOR_URL', plugin_dir_url( __FILE__ ) );
@@ -39,6 +39,7 @@ add_action( 'plugins_loaded', function () {
 	require_once FOLIENEDITOR_DIR . 'includes/product.php';
 	require_once FOLIENEDITOR_DIR . 'includes/cart.php';
 	require_once FOLIENEDITOR_DIR . 'includes/order.php';
+	require_once FOLIENEDITOR_DIR . 'includes/production.php';
 } );
 
 // Tägliches Aufräumen von Druckdateien, die nie bestellt wurden

@@ -52,13 +52,13 @@ add_action( 'admin_post_folieneditor_pdf', function () {
 	if ( ! $path || ! is_readable( $path ) ) {
 		wp_die( 'Die Druckdatei wurde nicht gefunden.', 404 );
 	}
-	$d    = json_decode( (string) $item->get_meta( '_folieneditor_design' ), true ) ?: [];
-	$size = isset( $d['wcm'], $d['hcm'] ) ? '_' . str_replace( '.', ',', $d['wcm'] . 'x' . $d['hcm'] ) . 'cm' : '';
-	$name = sprintf( 'bestellung-%d_pos-%d%s.pdf', $item->get_order_id(), $item_id, $size );
-	nocache_headers();
-	header( 'Content-Type: application/pdf' );
-	header( 'Content-Disposition: attachment; filename="' . $name . '"' );
-	header( 'Content-Length: ' . filesize( $path ) );
-	readfile( $path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+	// Gleicher Name wie im ZIP, z. B. 1234-01_2x_120x12cm.pdf
+	$name = "folie-$item_id.pdf";
+	foreach ( folieneditor_order_files( $item->get_order() ) as $f ) {
+		if ( $f['item_id'] === $item_id ) {
+			$name = $f['name'];
+		}
+	}
+	folieneditor_send_file( $path, $name, 'application/pdf' );
 	exit;
 } );
