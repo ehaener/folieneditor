@@ -1,10 +1,12 @@
 // Export der Folie als PNG (Raster), SVG und PDF (beide Vektor, Text als Pfade).
+// Farben: im PDF als CMYK (DeviceCMYK), in PNG und SVG als RGB-Annäherung.
 // Alle Dateien enthalten rundum 2 mm Beschnitt. Das PDF trägt zusätzlich
 // TrimBox (Endformat) und BleedBox (mit Beschnitt), wie Druckereien es erwarten.
 // Ein hochgeladenes Bild wird in seiner Originalauflösung eingebettet: Fotos als
 // JPEG, Logos mit Transparenz verlustfrei mit Alphakanal.
 
-import { drawCanvas, BLEED_MM } from './layout.js?v=20261008-3';
+import { drawCanvas, BLEED_MM } from './layout.js?v=20261014-1';
+import { cmykToHex, cmykLabel } from './color.js?v=20261014-1';
 
 const MAX_AREA = 16_000_000;   // Canvas-Grenze auf iPhones
 const MAX_SIDE = 16_000;
@@ -103,18 +105,16 @@ export function exportSVG(d, lay, meta = {}) {
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${n(P.w)}mm" height="${n(P.h)}mm" viewBox="0 0 ${n(P.w)} ${n(P.h)}">
   <title>Folie ${esc(d.wcm)} × ${esc(d.hcm)} cm (inkl. ${BLEED_MM} mm Beschnitt)</title>
-  <desc>Endformat ${esc(d.wcm)} × ${esc(d.hcm)} cm, Beschnitt ${BLEED_MM} mm je Seite. Schrift: ${esc(meta.font || '')}. Text: ${esc(d.text)}</desc>
-  <rect id="hintergrund" x="0" y="0" width="${n(P.w)}" height="${n(P.h)}" fill="${esc(d.bg)}"/>
-${svgImage(lay.image)}${lay.commands.length ? `  <path id="text" d="${svgPath(lay.commands)}" fill="${esc(d.fg)}"/>\n` : ''}</svg>
+  <desc>Endformat ${esc(d.wcm)} × ${esc(d.hcm)} cm, Beschnitt ${BLEED_MM} mm je Seite. Schrift: ${esc(meta.font || '')}. Hintergrund ${cmykLabel(d.bg)}, Text ${cmykLabel(d.fg)} (CMYK in Prozent, im SVG als RGB-Annäherung). Text: ${esc(d.text)}</desc>
+  <rect id="hintergrund" x="0" y="0" width="${n(P.w)}" height="${n(P.h)}" fill="${cmykToHex(d.bg)}" data-cmyk="${d.bg.join(' ')}"/>
+${svgImage(lay.image)}${lay.commands.length ? `  <path id="text" d="${svgPath(lay.commands)}" fill="${cmykToHex(d.fg)}" data-cmyk="${d.fg.join(' ')}"/>\n` : ''}</svg>
 `;
   return new Blob([svg], { type: 'image/svg+xml' });
 }
 
 // ---- PDF ------------------------------------------------------------------
-const rgb = (hex) => {
-  const h = hex.replace('#', '');
-  return [0, 2, 4].map((i) => n(parseInt(h.substr(i, 2), 16) / 255)).join(' ');
-};
+// CMYK-Füllfarbe für PDF-Operatoren: "c m y k k" mit Werten 0–1
+const cmykFill = (cmyk) => `${cmyk.map((v) => n(v / 100)).join(' ')} k`;
 
 // Pfade in PDF-Operatoren (Koordinaten in mm, y nach unten – die Seite wird per cm-Matrix umgerechnet).
 function pdfPath(commands) {
@@ -169,10 +169,10 @@ export async function exportPDF(d, lay) {
   const content = [
     'q',
     `${k.toFixed(6)} 0 0 ${(-k).toFixed(6)} 0 ${H} cm`,
-    `${rgb(d.bg)} rg`,
+    cmykFill(d.bg),
     `0 0 ${n(P.w)} ${n(P.h)} re f`,
     im ? `q ${n(im.w)} 0 0 ${n(-im.h)} ${n(im.x)} ${n(im.y + im.h)} cm /Im1 Do Q` : '',
-    lay.commands.length ? `${rgb(d.fg)} rg\n${pdfPath(lay.commands)}\nf` : '',
+    lay.commands.length ? `${cmykFill(d.fg)}\n${pdfPath(lay.commands)}\nf` : '',
     'Q',
   ].join('\n');
 

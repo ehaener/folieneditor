@@ -6,7 +6,7 @@ Schlanker Editor für individuell beschriftete Folien, z. B. Treppenfolien.
 - Text (mehrzeilig), passt sich automatisch an die Fläche an
 - Bild oder Logo hochladen: links oder rechts neben dem Text oder als Hintergrund
 - Schriftart per Dropdown, Grundschrift als Standard
-- Hintergrund- und Textfarbe
+- Hintergrund- und Textfarbe in **CMYK** (Farbfelder oder eigene Werte)
 - Export als **PDF**, **SVG** oder **PNG**, jeweils mit 2 mm Beschnitt auf allen Seiten
 
 Ausführliche Beschreibung aller Funktionen: [docs/DOKUMENTATION.md](docs/DOKUMENTATION.md)
@@ -39,7 +39,7 @@ Online über GitHub Pages: **Settings → Pages → Deploy from a branch → mai
 
 In PDF und SVG ist der Text in Pfade umgewandelt. Die Dateien sehen deshalb überall gleich aus, auch wenn die Schrift auf dem Rechner der Druckerei fehlt. Alle drei Formate werden aus denselben Schriftdaten erzeugt und sind deckungsgleich.
 
-Farben werden als RGB ausgegeben. Im Druck (CMYK) können kräftige Töne wie Türkis, Grün oder Pink etwas anders aussehen.
+Farben werden in **CMYK** gewählt (Farbfelder oder eigene Werte) und stehen im PDF als CMYK. SVG und PNG enthalten eine RGB-Annäherung. Hochgeladene Bilder bleiben RGB.
 
 ## Höchstmaße ändern
 
@@ -60,6 +60,7 @@ Die mitgelieferten Schriften stehen unter der SIL Open Font License (siehe `font
 - `src/ui.js` – Markup des Editors
 - `src/main.js` – Bedienung, Bild-Upload, Speicherstand im Browser (`mount()`)
 - `src/shop.js` – Start im Shop: Preis, Warenkorb (WordPress-Plugin)
+- `src/color.js` – Farbpalette in CMYK und Umrechnung für den Bildschirm
 - `src/layout.js` – Satz in Millimetern (Text und Bild), Beschnitt (2 mm) und Sicherheitsabstand (3 mm), Vorschau
 - `src/export.js` – PNG-, SVG- und PDF-Export
 - `src/fonts.js` – Schriftliste

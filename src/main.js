@@ -7,21 +7,17 @@
 //
 // Höchstmaße lassen sich auf der eigenen Seite per URL ändern: index.html?maxw=200&maxh=15
 
-import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js?v=20261008-3';
-import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js?v=20261008-3';
-import { exportPNG, exportSVG, exportPDF, download } from './export.js?v=20261008-3';
-import { template } from './ui.js?v=20261008-3';
+import { loadFonts, getFont, fontLabel, DEFAULT_FONT, FALLBACK_FONT } from './fonts.js?v=20261014-1';
+import { layout, drawCanvas, imageDpi, IMG_POSITIONS, BLEED_MM } from './layout.js?v=20261014-1';
+import { exportPNG, exportSVG, exportPDF, download } from './export.js?v=20261014-1';
+import { template } from './ui.js?v=20261014-1';
+import { COLORS, cmykToHex, cmykLabel, isCmyk, sameCmyk } from './color.js?v=20261014-1';
 
 const PNG_DPI = 150;
 const IMG_MAX_PX = 2400;              // längste Bildseite nach dem Hochladen (reicht für 15 cm bei 300 dpi)
 const IMG_MIN_DPI = 100;              // darunter Hinweis auf unscharfen Druck
 
-export const COLORS = [
-  ['Weiß', '#ffffff'], ['Schwarz', '#1d1d1b'], ['Grau', '#8d8d8d'], ['Rot', '#d62828'],
-  ['Orange', '#f28c28'], ['Gelb', '#ffd23f'], ['Hellgrün', '#8cc63f'], ['Grün', '#2e8b57'],
-  ['Türkis', '#1fb5ad'], ['Hellblau', '#4fb3e8'], ['Blau', '#1f5fad'], ['Lila', '#7b4fa0'],
-  ['Pink', '#e5579b'], ['Braun', '#8b5a2b'],
-];
+export { COLORS };
 
 function urlLimits() {
   const Q = new URLSearchParams(location.search);
@@ -33,7 +29,7 @@ function urlLimits() {
 let LIMITS, LS_KEY, IMG_KEY, els, IMG_HINT, onChange;
 const state = {
   wcm: 100, hcm: 10,
-  text: 'Dein Text', font: DEFAULT_FONT, bg: '#ffffff', fg: '#1d1d1b',
+  text: 'Dein Text', font: DEFAULT_FONT, bg: [0, 0, 0, 0], fg: [0, 0, 0, 100],   // Farben in CMYK (%)
   imgPos: 'left', imgScale: 100,
 };
 let img = null;   // HTMLImageElement des hochgeladenen Bildes
@@ -61,36 +57,41 @@ function onSize() {
   draw(); save();
 }
 
-// ---- Farbfelder ---------------------------------------------------------
+// ---- Farbfelder (CMYK) ---------------------------------------------------
+const CMYK = ['C', 'M', 'Y', 'K'];
+
 function buildSwatches(container, key, label) {
   container.innerHTML = '';
-  for (const [name, hex] of COLORS) {
+  for (const [name, cmyk] of COLORS) {
     const b = document.createElement('button');
-    b.type = 'button'; b.className = 'fe-swatch'; b.style.setProperty('--c', hex);
-    b.title = name; b.setAttribute('aria-label', `${label}: ${name}`); b.dataset.hex = hex;
-    b.onclick = () => { state[key] = hex; syncSwatches(); draw(); save(); };
+    b.type = 'button'; b.className = 'fe-swatch'; b.style.setProperty('--c', cmykToHex(cmyk));
+    b.title = `${name} (${cmykLabel(cmyk)})`; b.setAttribute('aria-label', `${label}: ${name}`); b.dataset.cmyk = cmyk.join(',');
+    b.onclick = () => { state[key] = [...cmyk]; syncSwatches(); draw(); save(); };
     container.appendChild(b);
   }
-  const custom = document.createElement('label');
-  custom.className = 'fe-swatch fe-custom'; custom.title = 'Eigene Farbe';
-  custom.innerHTML = `<input type="color" aria-label="${label}: eigene Farbe">`;
-  const input = custom.querySelector('input');
-  input.oninput = () => { state[key] = input.value; syncSwatches(); draw(); };
-  input.onchange = save;
-  container.appendChild(custom);
+  // Eigene Farbe: CMYK-Werte direkt eingeben
+  const row = document.createElement('div');
+  row.className = 'fe-cmyk';
+  row.innerHTML = CMYK.map((ch) =>
+    `<label><span>${ch}</span><input type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="${label}: ${ch} in Prozent" /></label>`).join('');
+  const inputs = [...row.querySelectorAll('input')];
+  const read = () => {
+    const v = inputs.map((i) => Math.round(Math.min(100, Math.max(0, parseFloat(i.value) || 0))));
+    state[key] = v; syncSwatches(); draw();
+  };
+  inputs.forEach((i) => { i.addEventListener('input', read); i.addEventListener('change', () => { read(); syncSwatches(true); save(); }); });
+  container.after(row);
 }
-function syncSwatches() {
+
+// force: auch das Feld aktualisieren, in dem gerade getippt wird
+function syncSwatches(force = false) {
   for (const [container, key] of [[els.bg, 'bg'], [els.fg, 'fg']]) {
-    let matched = false;
     container.querySelectorAll('button.fe-swatch').forEach((b) => {
-      const on = b.dataset.hex.toLowerCase() === state[key].toLowerCase();
-      matched ||= on;
-      b.setAttribute('aria-pressed', String(on));
+      b.setAttribute('aria-pressed', String(sameCmyk(b.dataset.cmyk.split(',').map(Number), state[key])));
     });
-    const custom = container.querySelector('.fe-custom');
-    custom.classList.toggle('active', !matched);
-    custom.querySelector('input').value = state[key];
-    if (!matched) custom.style.setProperty('--c', state[key]); else custom.style.removeProperty('--c');
+    container.nextElementSibling.querySelectorAll('input').forEach((i, n) => {
+      if (force || document.activeElement !== i) i.value = state[key][n];
+    });
   }
 }
 
@@ -250,6 +251,8 @@ export async function mount(root, options = {}) {
 
   state.wcm = Math.min(100, LIMITS.maxW); state.hcm = Math.min(10, LIMITS.maxH);
   try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); } catch {}
+  if (!isCmyk(state.bg)) state.bg = [0, 0, 0, 0];          // alter Speicherstand mit RGB-Farben
+  if (!isCmyk(state.fg)) state.fg = [0, 0, 0, 100];
   state.wcm = Math.min(Math.max(state.wcm, LIMITS.minW), LIMITS.maxW);
   state.hcm = Math.min(Math.max(state.hcm, LIMITS.minH), LIMITS.maxH);
 
