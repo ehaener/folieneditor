@@ -48,8 +48,35 @@ Version ersetzt werden soll → **Ersetzen**.
 
 - In der Bestellung steht unter der Position die Gestaltung (Größe, Text, Schrift, Farben, Bild),
   dazu ein Vorschaubild und der Knopf **„Druck-PDF herunterladen“**.
-  Dateiname z. B. `bestellung-1234_pos-5_120x12cm.pdf`. Hintergrund und Text sind darin in CMYK.
+  Hintergrund und Text sind darin in CMYK.
 - Die Gestaltung steht auch in den Bestell-Mails an Kunde und Shop.
+
+### Druckdateien für die Produktion
+
+Jede Folie einer Bestellung ist eine eigene Position mit eigenem Druck-PDF, auch wenn ein Kunde
+mehrere verschiedene Folien bestellt. Für die Weiterverarbeitung gibt es:
+
+- **Box „Druckdateien“** rechts in jeder Bestellung: alle Folien mit Stückzahl, jede einzeln
+  herunterladbar, dazu **„Alle als ZIP herunterladen“**.
+- **Sammel-Download** für mehrere Bestellungen: in der Bestellliste die Bestellungen markieren,
+  dann **Aktionen → „Druckdateien herunterladen (ZIP)“** → Übernehmen. Praktisch für einen
+  Produktionstag.
+- **Automatisch per E-Mail nach der Bezahlung:** Unter *Einstellungen → Produkte → Folieneditor →
+  Druckdateien* eine Adresse eintragen, z. B. die der Druckerei. Sobald eine Bestellung bezahlt
+  ist (Status „In Bearbeitung“), geht dorthin eine Mail mit allen PDFs als ZIP. Das passiert
+  einmal pro Bestellung und wird als Notiz in der Bestellung vermerkt. In der Box lässt sie sich
+  **erneut senden**.
+  - Bei **Kauf auf Rechnung** wird oft vor der Zahlung produziert. Dafür gibt es die Einstellung
+    „schon bei Kauf auf Rechnung / Vorkasse (Status ‚In Wartestellung‘)“.
+  - ZIPs über 15 MB werden nicht angehängt. Dann steht in der Mail der Link zur Bestellung im Backend.
+
+**Dateinamen:** `Bestellnummer-Position_StückzahlX_Endformat.pdf`, z. B.
+`1234-02_3x_150x15cm.pdf` = Bestellung 1234, Position 2, **3 Stück**, 150 × 15 cm. Mit Germanized
+Pro steht dort die Bestellnummer von Germanized.
+
+**Im ZIP** liegt zusätzlich **`auftrag.csv`** (öffnet in Excel): eine Zeile pro Folie mit
+Bestellung, Position, Menge, Breite, Höhe, Text, Schrift, Hintergrund- und Textfarbe (CMYK),
+Bild/Logo und Dateiname.
 
 ### Sicherheit
 
@@ -100,12 +127,15 @@ durchgespielt wurden:
 - Vorschau und PDF-Download im Backend, Schutz der PDFs vor direktem Zugriff
 - Ablehnung von falschen Maßen, gefälschten Dateien und „In den Warenkorb“ ohne Gestaltung
 - Handy-Ansicht
+- Bestellung mit drei verschiedenen Folien: ZIP aus der Box, Sammel-ZIP über zwei Bestellungen,
+  Mail an die Druckerei genau einmal bei „In Bearbeitung“ bzw. „In Wartestellung“ (je nach Einstellung)
 
 **Noch nicht getestet**, deshalb unbedingt auf der **Staging-Seite** prüfen:
 
 - dein Theme (vor allem, falls es ein klassisches Theme ist)
 - **Germanized Pro**: Preisangaben, Rechnungen (PDF), Checkboxen an der Kasse, Bestell-Mails
 - dein Zahlungsanbieter und andere Plugins
+- der echte Mailversand deines Hosters mit ZIP-Anhang
 
 ### Checkliste für den Test auf der Staging-Seite
 
@@ -116,8 +146,12 @@ durchgespielt wurden:
    wie gewohnt angezeigt?
 5. Bestellung abschließen
 6. Backend → Bestellung: Gestaltung, Vorschau und **Druck-PDF herunterladen**. PDF öffnen und prüfen
-7. Bestell-Mail und **Germanized-Rechnung**: Stehen die Angaben zur Folie drin?
-8. Auf dem Handy wiederholen
+7. Bestellung mit **mehreren verschiedenen Folien**: Box „Druckdateien“ → ZIP laden, Dateinamen und
+   `auftrag.csv` prüfen. Druckerei-Adresse eintragen, Bestellung auf „In Bearbeitung“ setzen und
+   prüfen, ob die Mail mit ZIP ankommt (auch Spam-Ordner). Ob die Mail ankommt, hängt vom Mailversand
+   des Hosters ab; bei Problemen ein SMTP-Plugin verwenden.
+8. Bestell-Mail und **Germanized-Rechnung**: Stehen die Angaben zur Folie drin?
+9. Auf dem Handy wiederholen
 
 ---
 
@@ -130,6 +164,7 @@ durchgespielt wurden:
 | `includes/product.php` | Häkchen am Produkt, Editor auf der Produktseite, Shortcode, „ab“-Preis |
 | `includes/cart.php` | Prüfung der Gestaltung, Upload, Preis, Anzeige im Warenkorb |
 | `includes/order.php` | Daten an die Bestellung, Vorschau und PDF-Download im Backend |
+| `includes/production.php` | Box „Druckdateien“, ZIP mit `auftrag.csv`, Sammel-Download, Mail nach Bezahlung |
 | `includes/files.php` | Ablage und Aufräumen der Dateien |
 | `editor/` | Kopie des Editors aus dem Repo (wird von `build.sh` erzeugt, nicht im Git) |
 

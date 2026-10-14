@@ -78,5 +78,32 @@ add_filter( 'woocommerce_get_settings_products', function ( $settings, $section 
 			'desc'              => sprintf( 'Der Server erlaubt derzeit %s MB pro Upload.', number_format_i18n( wp_max_upload_size() / MB_IN_BYTES, 1 ) ),
 		],
 		[ 'type' => 'sectionend', 'id' => 'folieneditor_limits' ],
+		[
+			'title' => 'Folieneditor: Druckdateien',
+			'type'  => 'title',
+			'desc'  => 'Jede Bestellung hat rechts die Box „Druckdateien“ mit allen PDFs und einem ZIP-Download. In der Bestellliste lassen sich mehrere Bestellungen markieren und über „Aktionen“ → „Druckdateien herunterladen (ZIP)“ gesammelt laden. '
+				. 'Ist unten eine Adresse eingetragen, gehen die Druckdateien zusätzlich automatisch per E-Mail raus (ZIP mit allen PDFs und auftrag.csv).',
+			'id'    => 'folieneditor_production',
+		],
+		[
+			'title'       => 'Druckdateien per E-Mail an',
+			'id'          => 'folieneditor_mail_to',
+			'type'        => 'email',
+			'default'     => '',
+			'placeholder' => 'z. B. druck@schultreppe.de',
+			'desc'        => 'Leer lassen, wenn keine E-Mail gesendet werden soll.',
+		],
+		[
+			'title'   => 'Senden, sobald …',
+			'id'      => 'folieneditor_mail_trigger',
+			'type'    => 'select',
+			'default' => 'processing',
+			'options' => [
+				'processing' => 'die Bestellung bezahlt ist (Status „In Bearbeitung“)',
+				'on-hold'    => 'schon bei Kauf auf Rechnung / Vorkasse (Status „In Wartestellung“)',
+			],
+			'desc'    => 'Bei Kauf auf Rechnung wird oft vor der Zahlung produziert. Dann die zweite Möglichkeit wählen.',
+		],
+		[ 'type' => 'sectionend', 'id' => 'folieneditor_production' ],
 	];
 }, 10, 2 );
